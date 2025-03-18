@@ -1,0 +1,222 @@
+﻿Stock_Name,Symbol
+Agilent Technologies,A
+Apple,AAPL
+Airbnb A,ABNB
+Arch Capital Group,ACGL
+Accenture A,ACN
+Adobe,ADBE
+Autodesk,ADSK
+Gallagher (Arthur J.),AJG
+Align Technology,ALGN
+Alnylam Pharmaceuticals,ALNY
+Applied Materials,AMAT
+Advanced Micro Devices,AMD
+AMETEK,AME
+Ameriprise Financial,AMP
+Amazon.com,AMZN
+Arista Networks,ANET
+Ansys,ANSS
+Aon PLC A,AON
+Amphenol Corp,APH
+AppLovin,APP
+Aptiv,APTV
+Ares Management Corp,ARES
+Axon Enterprise,AXON
+AutoZone,AZO
+Boeing Co,BA
+Booking Holdings,BKNG
+BioMarin Pharmaceutical,BMRN
+Broadridge Financial,BR
+Boston Scientific Corp,BSX
+Bentley Systems,BSY
+Burlington Stores,BURL
+Cadence Design Systems,CDNS
+CDW Corp,CDW
+Celanese Corp,CE
+Constellation Energy,CEG
+Celsius Holdings,CELH
+Confluent,CFLT
+Church & Dwight,CHD
+Colgate-Palmolive,CL
+Chipotle Mexican Grill A,CMG
+Coinbase Global A,COIN
+Costco Wholesale Corp,COST
+Copart,CPRT
+Salesforce,CRM
+CrowdStrike Holdings A,CRWD
+CoStar Group,CSGP
+Cintas Corp,CTAS
+Catalent,CTLT
+DoorDash A,DASH
+Dayforce (Ceridian HCM) Inc,DAY
+Datadog A,DDOG
+Deckers Outdoor Corp,DECK
+Dell Technologies C,DELL
+DraftKings,DKNG
+DocuSign,DOCU
+Domino's Pizza,DPZ
+Dynatrace,DT
+DaVita Healthcare,DVA
+Devon Energy,DVN
+Dexcom,DXCM
+Ecolab,ECL
+Equifax,EFX
+Estee Lauder Cos A,EL
+EMCOR Group,EME
+Enphase Energy,ENPH
+Entegris,ENTG
+EPAM Systems,EPAM
+Equitable Holdings,EQH
+Erie Indemnity Co (A),ERIE
+Eaton Corp PLC,ETN
+Etsy,ETSY
+Edwards Lifesciences,EW
+Exact Sciences,EXAS
+Expedia Group,EXPE
+Diamondback Energy,FANG
+Freeport McMoRan B,FCX
+FactSet Research Systems,FDS
+Fair Isaac Corp,FICO
+Fortinet,FTNT
+Liberty Formula One Group (C),FWONK
+GoDaddy,GDDY
+GE Aerospace,GE
+GE Healthcare Technologies,GEHC
+Graco,GGG
+Alphabet C,GOOG
+Alphabet A,GOOGL
+Grainger (WW),GWW
+Hyatt Hotels,H
+Heico Corp,HEI
+Heico Corp (A),HEI-A
+Hess,HES
+Hilton Worldwide Holdings,HLT
+Robinhood Markets,HOOD
+Hubbell,HUBB
+HubSpot,HUBS
+Howmet Aerospace,HWM
+IDEXX Laboratories,IDXX
+IDEX Corp,IEX
+Illumina,ILMN
+Incyte,INCY
+Intuit,INTU
+Samsara,IOT
+IQVIA Holdings,IQV
+Ingersoll-Rand,IR
+Intuitive Surgical,ISRG
+Gartner,IT
+Jack Henry & Associates,JKHY
+Keysight Technologies,KEYS
+KKR & Co A,KKR
+KLA Corporation,KLAC
+Lennox International,LII
+Linde (New),LIN
+Lilly (Eli) & Company,LLY
+Cheniere Energy,LNG
+LPL Financial Holdings,LPLA
+Lam Research Corp,LRCX
+Lattice Semiconductor,LSCC
+Lululemon Athletica,LULU
+Lamb Weston Holdings,LW
+Live Nation Entertainment,LYV
+Mastercard A,MA
+Manhattan Associates,MANH
+Marriott International A,MAR
+McKesson Corp,MCK
+Moody's Corp,MCO
+MongoDB,MDB
+MercadoLibre,MELI
+Meta Platforms A,META
+Martin Marietta Materials,MLM
+Marsh & McLennan Cos,MMC
+Monster Beverage,MNST
+Molina Healthcare,MOH
+Monolithic Power Systems,MPWR
+Merck & Co,MRK
+Moderna,MRNA
+Marvell Technology,MRVL
+MSCI,MSCI
+Microsoft Corp,MSFT
+Motorola Solutions,MSI
+MicroStrategy,MSTR
+Match Group,MTCH
+Mettler Toledo Intl,MTD
+Neurocrine Biosciences,NBIX
+Nordson Corp,NDSN
+Cloudflare A,NET
+Netflix,NFLX
+ServiceNow,NOW
+NVIDIA,NVDA
+Old Dominion Freight,ODFL
+Okta,OKTA
+O'Reilly Automotive,ORLY
+Otis Worldwide,OTIS
+Palo Alto Networks,PANW
+UiPath,PATH
+Paycom Software,PAYC
+Paylocity Holding Corp,PCTY
+Progressive Corp,PGR
+Pinterest A,PINS
+Palantir Technologies A,PLTR
+Insulet Corp,PODD
+Pool Corp,POOL
+Pure Storage,PSTG
+PTC,PTC
+Quanta Services,PWR
+Roblox,RBLX
+Royal Caribbean Group,RCL
+Regeneron Pharmaceutical,REGN
+Repligen,RGEN
+Roku,ROKU
+Rollins,ROL
+Republic Services,RSG
+SBA Communications A,SBAC
+Sherwin-Williams Co,SHW
+Super Micro Computer,SMCI
+Snap,SNAP
+Snowflake A,SNOW
+Synopsys,SNPS
+S&P Global,SPGI
+Block,SQ
+Steel Dynamics,STLD
+Seagate Technology,STX
+Stryker Corp,SYK
+TransDigm Group Inc,TDG
+Atlassian (US),TEAM
+Bio-Techne,TECH
+Teradyne,TER
+Thermo Fisher Scientific,TMO
+T-Mobile US,TMUS
+Toast,TOST
+Texas Pacific Land,TPL
+Targa Resources Corp,TRGP
+Tractor Supply Co,TSCO
+Tesla,TSLA
+Trane Technologies,TT
+The Trade Desk A,TTD
+Tradeweb Markets,TW
+Tyler Technologies,TYL
+Unity Software,U
+Uber Technologies,UBER
+Union Pacific Corp,UNP
+Visa A,V
+Veeva Systems A,VEEV
+Veralto Corp,VLTO
+Vulcan Materials Co,VMC
+Verisk Analytics A,VRSK
+Verisign,VRSN
+Vertiv Holdings A,VRT
+Vertex Pharmaceuticals,VRTX
+Waters Corp,WAT
+Warner Bros Discovery,WBD
+Waste Connections,WCN
+Workday A,WDAY
+Waste Management,WM
+Walmart,WMT
+Williams-Sonoma,WSM
+West Pharmaceutical Svcs,WST
+Wynn Resorts,WYNN
+Yum Brands,YUM
+Zebra Technologies,ZBRA
+Zscaler,ZS
+Zoetis A,ZTS
