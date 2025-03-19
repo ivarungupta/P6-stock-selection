@@ -27,4 +27,5 @@
 ├── main.py
 ├── main.txt
 └── readme.md
+└── tickers.csv
 ```
