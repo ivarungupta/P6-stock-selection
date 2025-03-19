@@ -9,6 +9,15 @@
 │   └── ml.txt
 ├── models/
 │   ├── factors.py
+│   ├── emotional.py
+│   ├── growth.py
+│   ├── momentum.py
+│   ├── quality.py
+│   ├── risk.py
+│   ├── stock.py
+│   ├── style.py
+│   ├── technical.py
+│   ├── value.py
 │   └── model.txt
 ├── optimization/
 │   └── opt.txt
