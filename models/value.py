@@ -17,7 +17,7 @@ class Value:
         self.cash_flow_data = cash_flow_data
         self.enterprise_data = enterprise_data
         self.required_columns = {
-            'income': {'netIncome', 'revenue', 'eps', 'EBIT'},
+            'income': {'netIncome', 'revenue', 'eps', 'costOfRevenue', 'operatingExpenses'},
             'balance': {'totalLiabilities', 'totalAssets', 'netReceivables', 'inventory', 'totalStockholdersEquity'},
             'cash_flow': {'operatingCashFlow'},
             'enterprise': {'numberOfShares', 'stockPrice'}
@@ -45,7 +45,7 @@ class Value:
         return self.income_data['netIncome'].iloc[0]
 
     def calculate_ebit(self):
-        return self.income_data['EBIT'].iloc[0]
+        return self.income_data['revenue'].iloc[0] - self.income_data['costOfRevenue'].iloc[0] - self.income_data['operatingExpenses'].iloc[0]
 
     def calculate_price_to_sales(self):
         return self.enterprise_data['stockPrice'].iloc[0] / (self.income_data['revenue'].iloc[0] /
@@ -71,7 +71,7 @@ class Value:
 
     def calculate_all_factors(self):
         try:
-            return {
+            return pd.DataFrame([{
                 'financial_liability': self.calculate_financial_liability(),
                 'cash_flow_to_price_ratio': self.calculate_cash_flow_to_price(),
                 'net_profit': self.calculate_net_profit(),
@@ -83,7 +83,7 @@ class Value:
                 'QR': self.calculate_quick_ratio(),
                 'EV/OCL': self.calculate_ev_to_ocl(),
                 'D/E': self.calculate_debt_to_equity()
-            }
+            }])
         except Exception as e:
             print(f"Error calculating value factors: {e}")
             return {}

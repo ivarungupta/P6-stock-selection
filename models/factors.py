@@ -24,7 +24,9 @@ class FactorsWrapper:
         self.ticker = ticker
         self.fmp = fmp
         self.period = period
-
+        self.start_date = start_date
+        self.end_date = end_date
+        
         # Fetch current financial statements and convert to DataFrames.
         self.income_data = self._get_df(self.fmp.get_income_statement(self.ticker, period=self.period))
         self.balance_data = self._get_df(self.fmp.get_balance_sheet(self.ticker, period=self.period))

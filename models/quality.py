@@ -62,13 +62,13 @@ class Quality:
 
     def calculate_all_factors(self):
         try:
-            factors = {
+            factors = pd.DataFrame([{
                 'net_profit_to_total_revenue': self.calculate_net_profit_to_revenue(),
                 'DECM': self.calculate_decm(),
                 'ROE': self.calculate_roe(),
                 'ROA': self.calculate_roa(),
                 'ACCA': self.calculate_acca()
-            }
+            }])
             if self.prev_income_data is not None:
                 factors['GMI'] = self.calculate_gmi()
             return factors

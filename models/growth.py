@@ -58,13 +58,13 @@ class Growth:
 
     def calculate_all_factors(self):
         try:
-            return {
+            return pd.DataFrame([{
                 'PEG': self.calculate_peg(),
                 'net_profit_growth_rate': self.calculate_net_profit_growth(),
                 'total_revenue_growth_rate': self.calculate_revenue_growth(),
                 'net_asset_growth_rate': self.calculate_net_asset_growth(),
                 'net_operate_cashflow_growth_rate': self.calculate_operating_cashflow_growth()
-            }
+            }])
         except Exception as e:
             print(f"Error calculating growth factors: {e}")
             return {}

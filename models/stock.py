@@ -54,14 +54,14 @@ class Stock:
 
     def calculate_all_factors(self):
         try:
-            return {
+            return pd.DataFrame([{
                 'net_asset_per_share': self.calculate_net_asset_per_share(),
                 'net_operate_cash_flow_per_share': self.calculate_net_operate_cash_flow_per_share(),
                 'eps': self.calculate_eps(),
                 'retained_earnings_per_share': self.calculate_retained_earnings_per_share(),
                 'cashflow_per_share': self.calculate_cashflow_per_share(),
                 'market_cap': self.calculate_market_cap()
-            }
+            }])
         except Exception as e:
             print(f"Error calculating stock factors: {e}")
             return {}

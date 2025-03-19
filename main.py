@@ -147,20 +147,24 @@ def main():
     fmp = FMPWrapper(api_key)
     
     ticker = tickers[0]
-    print(f"\nProcessing ticker: {ticker}")
+    # print(f"\nProcessing ticker: {ticker}")
     
 
     start_date = "2020-01-01"  
     end_date = "2020-12-31"    
     
     factors_wrapper = FactorsWrapper(ticker, fmp, start_date, end_date)
-    
+    merged_factors = pd.DataFrame()
     factors = factors_wrapper.calculate_all_factors()
-    
+    # factors_df = pd.DataFrame(factors)
+    # print(factors_df)
     for factor_category, factor_values in factors.items():
         print(f"\n--- {factor_category.upper()} FACTORS ---")
+        # factor_df = pd.DataFrame([factor_values])
         print(factor_values)
+        # merged_factors = pd.concat([merged_factors, factor_df], axis=1)
 
+    # print(merged_factors)
 if __name__ == "__main__":
     main()
 
