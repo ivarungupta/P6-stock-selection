@@ -45,7 +45,7 @@ class Momentum:
             self.calculate_trix()
             self.calculate_price_quarterly()
             self.calculate_price_level_ratio()
-            momentum_columns = ['ROC60', 'Volume1Q', 'TRIX30', 'Price1Q', 'PLRC36']
+            momentum_columns = ['date','ROC60', 'Volume1Q', 'TRIX30', 'Price1Q', 'PLRC36']
             return self.df[momentum_columns]
         except Exception as e:
             print(f"Error calculating momentum factors: {e}")

@@ -149,12 +149,11 @@ def main():
     ticker = tickers[0]
     # print(f"\nProcessing ticker: {ticker}")
     
-
     start_date = "2020-01-01"  
     end_date = "2020-12-31"    
     
     factors_wrapper = FactorsWrapper(ticker, fmp, start_date, end_date)
-    merged_factors = pd.DataFrame()
+    # merged_factors = pd.DataFrame()
     factors = factors_wrapper.calculate_all_factors()
     # factors_df = pd.DataFrame(factors)
     # print(factors_df)

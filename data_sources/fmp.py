@@ -38,12 +38,13 @@ class FMPWrapper:
         else:
             return pd.DataFrame()
 
-    def get_financial_ratios(self, symbol):
+    def get_financial_ratios(self, symbol, period="quarterly"):
         """
         Fetch financial ratios for a given symbol.
         """
         endpoint = f"ratios/{symbol}"
-        return self._make_request(endpoint)
+        params = {"period": period}
+        return self._make_request(endpoint, params)
 
     def get_income_statement(self, symbol, period="quarterly"):
         """

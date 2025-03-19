@@ -50,7 +50,7 @@ class Risk:
             self.calculate_kurtosis()
             self.calculate_skewness()
             self.calculate_sharpe_ratio_60()
-            risk_columns = ['Variance60', 'sharpe_ratio_20', 'Kurtosis60', 'Skewness60', 'sharpe_ratio_60']
+            risk_columns = ['date','Variance60', 'sharpe_ratio_20', 'Kurtosis60', 'Skewness60', 'sharpe_ratio_60']
             return self.df[risk_columns]
         except Exception as e:
             print(f"Error calculating risk factors: {e}")

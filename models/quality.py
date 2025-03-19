@@ -11,11 +11,10 @@ class Quality:
         cash_flow_data (pd.DataFrame): Cash flow statement data
         prev_income_data (pd.DataFrame, optional): Previous period income data
     """
-    def __init__(self, income_data, balance_data, cash_flow_data, prev_income_data=None):
-        self.income_data = income_data
-        self.balance_data = balance_data
-        self.cash_flow_data = cash_flow_data
-        self.prev_income_data = prev_income_data
+    def __init__(self, income_data, balance_data, cash_flow_data):
+        self.income_data_master = income_data
+        self.balance_data_master = balance_data
+        self.cash_flow_data_master = cash_flow_data
         self.required_columns = {
             'income': {'netIncome', 'revenue', 'grossProfit'},
             'balance': {'totalStockholdersEquity', 'totalAssets', 'totalLiabilities'},
@@ -26,13 +25,13 @@ class Quality:
     def _validate_columns(self):
         missing_cols = []
         for col in self.required_columns['income']:
-            if col not in self.income_data.columns:
+            if col not in self.income_data_master.columns:
                 missing_cols.append(f"Income: {col}")
         for col in self.required_columns['balance']:
-            if col not in self.balance_data.columns:
+            if col not in self.balance_data_master.columns:
                 missing_cols.append(f"Balance: {col}")
         for col in self.required_columns['cash_flow']:
-            if col not in self.cash_flow_data.columns:
+            if col not in self.cash_flow_data_master.columns:
                 missing_cols.append(f"Cash Flow: {col}")
         if missing_cols:
             raise ValueError(f"Missing required columns: {', '.join(missing_cols)}")
@@ -51,9 +50,12 @@ class Quality:
 
     def calculate_gmi(self):
         if self.prev_income_data is None:
-            raise ValueError("Previous period income data required for GMI calculation")
+            prev_gross_margin = 0
+        else:
+            prev_gross_margin = self.prev_income_data['grossProfit'].iloc[0] / self.prev_income_data['revenue'].iloc[0]
+        
         current_gross_margin = self.income_data['grossProfit'].iloc[0] / self.income_data['revenue'].iloc[0]
-        prev_gross_margin = self.prev_income_data['grossProfit'].iloc[0] / self.prev_income_data['revenue'].iloc[0]
+        
         return current_gross_margin - prev_gross_margin
 
     def calculate_acca(self):
@@ -62,16 +64,28 @@ class Quality:
 
     def calculate_all_factors(self):
         try:
-            factors = pd.DataFrame([{
-                'net_profit_to_total_revenue': self.calculate_net_profit_to_revenue(),
-                'DECM': self.calculate_decm(),
-                'ROE': self.calculate_roe(),
-                'ROA': self.calculate_roa(),
-                'ACCA': self.calculate_acca()
-            }])
-            if self.prev_income_data is not None:
-                factors['GMI'] = self.calculate_gmi()
-            return factors
+            factors = []
+            for _, income_row in self.income_data_master.iterrows():
+                date = income_row['date']
+                self.income_data = self.income_data_master[self.income_data_master['date'] == date]
+                self.balance_data = self.balance_data_master[self.balance_data_master['date'] == date]
+                self.cash_flow_data = self.cash_flow_data_master[self.cash_flow_data_master['date'] == date]
+                self.prev_income_data = None
+                if not self.income_data_master[self.income_data_master['date'] < date].empty:
+                    self.prev_income_data = self.income_data_master[self.income_data_master['date'] < date].iloc[-1:]
+
+                factors.append({
+                    'date': date,
+                    'net_profit_to_total_revenue': self.calculate_net_profit_to_revenue(),
+                    'DECM': self.calculate_decm(),
+                    'ROE': self.calculate_roe(),
+                    'ROA': self.calculate_roa(),
+                    'ACCA': self.calculate_acca(),
+                    'GMI': self.calculate_gmi()
+                })
+
+            return pd.DataFrame(factors)
+        
         except Exception as e:
             print(f"Error calculating quality factors: {e}")
             return {}

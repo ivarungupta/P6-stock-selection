@@ -46,7 +46,7 @@ class Technical:
             self.calculate_mac()
             self.calculate_bollinger_bands()
             self.calculate_mfi()
-            technical_columns = ['MAC60', 'boll_up', 'boll_down', 'MFI42']
+            technical_columns = ['date','MAC60', 'boll_up', 'boll_down', 'MFI42']
             return self.df[technical_columns]
         except Exception as e:
             print(f"Error calculating technical factors: {e}")

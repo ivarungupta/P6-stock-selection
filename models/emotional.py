@@ -47,7 +47,7 @@ class Emotional:
             self.calculate_volume_oscillator()
             self.calculate_volume_macd()
             self.calculate_atr()
-            emotional_columns = ['VOL20', 'DAVOL20', 'VOSC', 'VMACD', 'ATR14']
+            emotional_columns = ['date','VOL20', 'DAVOL20', 'VOSC', 'VMACD', 'ATR14']
             return self.df[emotional_columns]
         except Exception as e:
             print(f"Error calculating emotional factors: {e}")
