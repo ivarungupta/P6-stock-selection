@@ -1,5 +1,6 @@
-# models/factors.py
-
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 import pandas as pd
 from data_sources.fmp import FMPWrapper
 from .quality import Quality
@@ -36,7 +37,6 @@ class FactorsWrapper:
         self.prev_cash_flow_data = self._get_df(self.fmp.get_cash_flow_statement(self.ticker, period=self.period), index=1)
         
         # Fetch historical market data for market-related factors.
-        # Adjust the date range as needed.
         self.market_data = self.fmp.get_historical_price(self.ticker, start_date, end_date)
         
     def _get_df(self, data, index=0):
@@ -153,6 +153,8 @@ if __name__ == "__main__":
     api_key = "bEiVRux9rewQy16TXMPxDqBAQGIW8UBd"
     fmp = FMPWrapper(api_key)
     ticker = "AAPL"
-    wrapper = FactorsWrapper(ticker, fmp)
+    start_date = "2020-01-01"
+    end_date = "2020-12-31"
+    wrapper = FactorsWrapper(ticker, fmp, start_date, end_date)
     all_factors = wrapper.calculate_all_factors()
     print(all_factors)
