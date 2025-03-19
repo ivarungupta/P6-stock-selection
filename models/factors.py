@@ -19,7 +19,7 @@ class FactorsWrapper:
     It fetches financial statements and market data via the FMPWrapper, converts the responses to DataFrames,
     and passes them to the individual factor calculation classes.
     """
-    def __init__(self, ticker, fmp: FMPWrapper, period="annual"):
+    def __init__(self, ticker, fmp: FMPWrapper, start_date, end_date, period="quarterly"):
         self.ticker = ticker
         self.fmp = fmp
         self.period = period
@@ -28,22 +28,16 @@ class FactorsWrapper:
         self.income_data = self._get_df(self.fmp.get_income_statement(self.ticker, period=self.period))
         self.balance_data = self._get_df(self.fmp.get_balance_sheet(self.ticker, period=self.period))
         self.cash_flow_data = self._get_df(self.fmp.get_cash_flow_statement(self.ticker, period=self.period))
-        
+        self.enterprise_data = self._get_df(self.fmp.get_enterprise_values(self.ticker, period=self.period))
+
         # For growth factors, fetch the previous period data.
         self.prev_income_data = self._get_df(self.fmp.get_income_statement(self.ticker, period=self.period), index=1)
         self.prev_balance_data = self._get_df(self.fmp.get_balance_sheet(self.ticker, period=self.period), index=1)
         self.prev_cash_flow_data = self._get_df(self.fmp.get_cash_flow_statement(self.ticker, period=self.period), index=1)
         
-        # For enterprise data required by Value and Stock factors, here we use dummy values.
-        # In practice, you could fetch these using an appropriate FMP endpoint.
-        self.enterprise_data = pd.DataFrame([{
-            "numberOfShares": 100,  # dummy value
-            "stockPrice": 10        # dummy value
-        }])
-        
         # Fetch historical market data for market-related factors.
         # Adjust the date range as needed.
-        self.market_data = self.fmp.get_historical_price(self.ticker, start_date="2021-01-01", end_date="2021-12-31")
+        self.market_data = self.fmp.get_historical_price(self.ticker, start_date, end_date)
         
     def _get_df(self, data, index=0):
         """

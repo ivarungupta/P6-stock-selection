@@ -66,6 +66,7 @@
 import pandas as pd
 from data_sources.fmp import FMPWrapper
 from models.factors import FactorsWrapper
+from datetime import datetime, timedelta
 
 def main():
     # Read tickers from your CSV file (make sure 'Tickers.csv' is in your project root)
@@ -80,7 +81,9 @@ def main():
     # Initialize the FMPWrapper with your API key.
     api_key = "bEiVRux9rewQy16TXMPxDqBAQGIW8UBd"
     fmp = FMPWrapper(api_key)
-    
+
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=365)
     # This list will store a merged dictionary of factors for each ticker.
     merged_factors_list = []
     
@@ -88,8 +91,10 @@ def main():
         print(f"\nProcessing ticker: {ticker}")
         try:
             # Instantiate the FactorsWrapper for the ticker.
-            factors_wrapper = FactorsWrapper(ticker, fmp)
+            factors_wrapper = FactorsWrapper(ticker, fmp, start_date, end_date, period="quarterly")
             
+            print(f"Processing tickers {tickers} from {start_date.date()} to {end_date.date()}")
+  
             # Calculate all factors (returned as a dictionary grouped by category).
             factors = factors_wrapper.calculate_all_factors()
             

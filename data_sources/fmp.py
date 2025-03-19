@@ -45,7 +45,7 @@ class FMPWrapper:
         endpoint = f"ratios/{symbol}"
         return self._make_request(endpoint)
 
-    def get_income_statement(self, symbol, period="annual"):
+    def get_income_statement(self, symbol, period="quarterly"):
         """
         Fetch the income statement for a given symbol.
         """
@@ -53,7 +53,7 @@ class FMPWrapper:
         params = {"period": period}
         return self._make_request(endpoint, params)
 
-    def get_balance_sheet(self, symbol, period="annual"):
+    def get_balance_sheet(self, symbol, period="quarterly"):
         """
         Fetch the balance sheet for a given symbol.
         """
@@ -61,11 +61,19 @@ class FMPWrapper:
         params = {"period": period}
         return self._make_request(endpoint, params)
 
-    def get_cash_flow_statement(self, symbol, period="annual"):
+    def get_cash_flow_statement(self, symbol, period="quarterly"):
         """
         Fetch the cash flow statement for a given symbol.
         """
         endpoint = f"cash-flow-statement/{symbol}"
+        params = {"period": period}
+        return self._make_request(endpoint, params)
+    
+    def get_enterprise_values(self, symbol, period="quarterly"):
+        """
+        Fetch the cash flow statement for a given symbol.
+        """
+        endpoint = f"enterprise-values/{symbol}"
         params = {"period": period}
         return self._make_request(endpoint, params)
 
