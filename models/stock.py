@@ -69,6 +69,11 @@ class Stock:
                         self.market_data = self.market_data_master[self.market_data_master['date'] == prev_date]
                     factors.append({
                         'date': date,
+                        'open': self.market_data['open'].iloc[0],
+                        'high': self.market_data['high'].iloc[0],
+                        'low': self.market_data['low'].iloc[0],
+                        'close': self.market_data['close'].iloc[0],
+                        'volume': self.market_data['volume'].iloc[0],
                         'net_asset_per_share': self.calculate_net_asset_per_share(),
                         'net_operate_cash_flow_per_share': self.calculate_net_operate_cash_flow_per_share(),
                         'eps': self.calculate_eps(),

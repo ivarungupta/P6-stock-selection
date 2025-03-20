@@ -7,6 +7,8 @@ from models.factors import FactorsWrapper
 from ml_models.scalars.normalization.min_max_scaling import MinMaxScaling
 from ml_models.feature_engineering.pca import PCAFeatureSelector
 from ml_models.models_ml.random_forest import RandomForestModel
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
 
 
 def process_ticker(ticker, api_key, start_date, end_date):
@@ -55,19 +57,30 @@ def process_ticker(ticker, api_key, start_date, end_date):
 
 def create_target(df):
     """
-    Dummy target creation for demonstration.
-    This function creates a binary 'target' column based on the first available numeric column.
-    For example, if the value of that column is above its median, target is 1, otherwise 0.
+    Create a target column by categorizing the close price change into 5 baskets.
+    The baskets are based on specific percentage change ranges.
     """
-    numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
-    # Exclude the 'target' column if it already exists
-    numeric_cols = [col for col in numeric_cols if col != 'target']
-    if numeric_cols:
-        first_numeric = numeric_cols[0]
-        median_val = df[first_numeric].median()
-        df['target'] = (df[first_numeric] > median_val).astype(int)
+
+    if "close" in df.columns:
+        df["close_change"] = df["close"].pct_change() * 100  # Calculate percentage change in close price
+        conditions = [
+            df["close_change"] < -10,  # Less than -10%
+            (df["close_change"] >= -10) & (df["close_change"] < 0),  # Between -10% and 0%
+            (df["close_change"] >= 0) & (df["close_change"] < 5),  # Between 0% and 5%
+            (df["close_change"] >= 5) & (df["close_change"] < 10),  # Between 5% and 10%
+            df["close_change"] >= 10  # Greater than 10%
+        ]
+        labels = [0, 1, 2, 3, 4]  # Assign labels for each basket
+        df["target"] = pd.cut(df["close_change"], bins=[-float("inf"), -10, 0, 5, 10, float("inf")], labels=labels)
+        df.drop(columns=["close_change"], inplace=True)
     else:
-        df['target'] = 0
+        print("Column 'close' not found in the DataFrame. Creating a default target column.")
+        df["target"] = 0
+    
+    # Shift the target variable one timestamp back
+    df["target"] = df["target"].shift(-1)
+    df.dropna(subset=["target"], inplace=True)  # Drop rows with NaN target values after shifting
+
     return df
 
 
@@ -102,16 +115,17 @@ def main():
     if merged_factors_list:
         master_df = pd.concat(merged_factors_list, ignore_index=True)
 
-        # Create a dummy target column for ML training
-        master_df = create_target(master_df)
-
         output_csv = "final_merged_factors.csv"
         master_df.to_csv(output_csv, index=False)
         print(f"\nFinal merged factors saved to {output_csv}")
 
+        testing_df = master_df.copy()
+        testing_df = create_target(testing_df)
+
+        # print(master_df.isnull().sum())
         # ML pipeline processing
         scaler = MinMaxScaling()
-        scaled_df = scaler.transform(master_df)
+        scaled_df = scaler.transform(testing_df)
 
         # Feature engineering using PCA
         pca_selector = PCAFeatureSelector(n_components=5)
@@ -123,9 +137,15 @@ def main():
 
         # Train Random Forest model
         model = RandomForestModel()
-        model.train(X, y)
-        predictions = model.predict(X)
-        print("Model predictions:", predictions)
+        # Perform train-test split
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        model.train(X_train, y_train)
+        predictions = model.predict(X_test)
+        # Calculate accuracy
+        print("Predictions:", predictions)
+        accuracy = accuracy_score(y_test, predictions)
+        print("Model accuracy:", accuracy)
     else:
         print("No factors were successfully calculated.")
 
