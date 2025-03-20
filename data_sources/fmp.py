@@ -72,7 +72,7 @@ class FMPWrapper:
     
     def get_enterprise_values(self, symbol, period="quarterly"):
         """
-        Fetch the cash flow statement for a given symbol.
+        Fetch the enterprise value for a given symbol.
         """
         endpoint = f"enterprise-values/{symbol}"
         params = {"period": period}

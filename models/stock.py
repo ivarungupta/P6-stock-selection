@@ -12,22 +12,22 @@ class Stock:
         enterprise_data (pd.DataFrame): Enterprise value and market data
     """
     def __init__(self, income_data, balance_data, cash_flow_data, enterprise_data):
-        self.income_data = income_data
-        self.balance_data = balance_data
-        self.cash_flow_data = cash_flow_data
-        self.enterprise_data = enterprise_data
+        self.income_data_master = income_data
+        self.balance_data_master = balance_data
+        self.cash_flow_data_master = cash_flow_data
+        self.enterprise_data_master = enterprise_data
         self.required_columns = {
             'income': {'eps'},
             'balance': {'totalStockholdersEquity', 'retainedEarnings'},
             'cash_flow': {'operatingCashFlow', 'freeCashFlow'},
-            'enterprise': {'numberOfShares', 'stockPrice'}
+            'enterprise': {'marketCapitalization'}
         }
         self._validate_columns()
 
     def _validate_columns(self):
         missing_cols = []
         for df_name, columns in self.required_columns.items():
-            df = getattr(self, f"{df_name}_data")
+            df = getattr(self, f"{df_name}_data_master")
             for col in columns:
                 if col not in df.columns:
                     missing_cols.append(f"{df_name}: {col}")
@@ -50,18 +50,28 @@ class Stock:
         return self.cash_flow_data['freeCashFlow'].iloc[0] / self.enterprise_data['numberOfShares'].iloc[0]
 
     def calculate_market_cap(self):
-        return self.enterprise_data['numberOfShares'].iloc[0] * self.enterprise_data['stockPrice'].iloc[0]
+        return self.enterprise_data['marketCapitalization'].iloc[0]
 
     def calculate_all_factors(self):
         try:
-            return pd.DataFrame([{
-                'net_asset_per_share': self.calculate_net_asset_per_share(),
-                'net_operate_cash_flow_per_share': self.calculate_net_operate_cash_flow_per_share(),
-                'eps': self.calculate_eps(),
-                'retained_earnings_per_share': self.calculate_retained_earnings_per_share(),
-                'cashflow_per_share': self.calculate_cashflow_per_share(),
-                'market_cap': self.calculate_market_cap()
-            }])
+            factors = []
+            for i, income_row in self.income_data_master.iterrows():
+                    date = income_row['date']
+                    self.income_data = self.income_data_master[self.income_data_master['date'] == date]
+                    self.balance_data = self.balance_data_master[self.balance_data_master['date'] == date]
+                    self.cash_flow_data = self.cash_flow_data_master[self.cash_flow_data_master['date'] == date]
+                    self.enterprise_data = self.enterprise_data_master[self.enterprise_data_master['date'] == date]
+                    factors.append({
+                        'date': date,
+                        'net_asset_per_share': self.calculate_net_asset_per_share(),
+                        'net_operate_cash_flow_per_share': self.calculate_net_operate_cash_flow_per_share(),
+                        'eps': self.calculate_eps(),
+                        'retained_earnings_per_share': self.calculate_retained_earnings_per_share(),
+                        'cashflow_per_share': self.calculate_cashflow_per_share(),
+                        'market_cap': self.calculate_market_cap()
+                    })
+            return pd.DataFrame(factors)
+        
         except Exception as e:
             print(f"Error calculating stock factors: {e}")
             return {}

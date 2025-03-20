@@ -146,7 +146,7 @@ def main():
     api_key = "bEiVRux9rewQy16TXMPxDqBAQGIW8UBd"
     fmp = FMPWrapper(api_key)
     
-    ticker = tickers[0]
+    ticker = tickers[1]
     # print(f"\nProcessing ticker: {ticker}")
     
     start_date = "2020-01-01"  

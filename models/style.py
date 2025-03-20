@@ -37,8 +37,6 @@ class Style:
             # Get stock returns
             stock_returns = self.df[['date','close']].copy()
             stock_returns['close'] = stock_returns['close'].pct_change()
-            print(type(stock_returns))
-            print(type(self.sp500_returns))
             # Merge with market returns
             merged_df = pd.merge(
                 stock_returns,
