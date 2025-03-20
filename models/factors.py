@@ -31,25 +31,19 @@ class FactorsWrapper:
         self.income_data = self._get_df(self.fmp.get_income_statement(self.ticker, period=self.period))
         self.balance_data = self._get_df(self.fmp.get_balance_sheet(self.ticker, period=self.period))
         self.cash_flow_data = self._get_df(self.fmp.get_cash_flow_statement(self.ticker, period=self.period))
-        self.enterprise_data = self._get_df(self.fmp.get_enterprise_values(self.ticker, period=self.period))
         self.financial_ratio_data = self._get_df(self.fmp.get_financial_ratios(self.ticker, period=self.period))
 
         self.prev_quarter_start_date = self.get_prev_quarter_start(start_date)
 
-        self.enterprise_data = self.enterprise_data[(self.enterprise_data['date'] >= self.prev_quarter_start_date) & (self.enterprise_data['date'] <= self.end_date)][['date', 'symbol', 'stockPrice', 'numberOfShares', 'marketCapitalization']].iloc[::-1].reset_index(drop=True)
         self.balance_data = self.balance_data[(self.balance_data['date'] >= self.prev_quarter_start_date) & (self.balance_data['date'] <= self.end_date)][['date', 'symbol', 'calendarYear', 'period', 'netReceivables', 'inventory', 'totalAssets', 'totalLiabilities', 'minorityInterest', 'commonStock', 'totalStockholdersEquity', 'retainedEarnings']].iloc[::-1].reset_index(drop=True)
-        self.income_data = self.income_data[(self.income_data['date'] >= self.prev_quarter_start_date) & (self.income_data['date'] <= self.end_date)][['date', 'symbol','calendarYear', 'period', 'revenue', 'grossProfit', 'netIncome', 'interestExpense', 'eps', 'operatingExpenses', 'costOfRevenue', 'operatingIncome']].iloc[::-1].reset_index(drop=True)
+        self.income_data = self.income_data[(self.income_data['date'] >= self.prev_quarter_start_date) & (self.income_data['date'] <= self.end_date)][['date', 'symbol','calendarYear', 'period', 'revenue', 'grossProfit', 'netIncome', 'interestExpense', 'eps', 'operatingExpenses', 'costOfRevenue', 'operatingIncome','weightedAverageShsOut']].iloc[::-1].reset_index(drop=True)
         self.cash_flow_data = self.cash_flow_data[(self.cash_flow_data['date'] >= self.prev_quarter_start_date) & (self.cash_flow_data['date'] <= self.end_date)][['date', 'symbol','calendarYear', 'period', 'dividendsPaid', 'operatingCashFlow', 'freeCashFlow']].iloc[::-1].reset_index(drop=True)
         self.financial_ratio_data = self.financial_ratio_data[(self.financial_ratio_data['date'] >= self.prev_quarter_start_date) & (self.financial_ratio_data['date'] <= self.end_date)].iloc[::-1].reset_index(drop=True)
 
-        print(self.balance_data)
-        print(self.income_data)
-        print(self.cash_flow_data)
-        print(self.enterprise_data)
         # Fetch historical market data for market-related factors.
         self.market_data = self.fmp.get_historical_price(self.ticker, self.prev_quarter_start_date, end_date)
         self.market_data = self.market_data[['date','open', 'high', 'low', 'close', 'adjClose', 'volume', 'changePercent']].iloc[::-1].reset_index(drop=True)
-    
+
     def get_prev_quarter_start(self, date_str):
         date = pd.to_datetime(date_str)
         # Get current quarter
@@ -98,7 +92,7 @@ class FactorsWrapper:
                 income_data=self.income_data,
                 balance_data=self.balance_data,
                 cash_flow_data=self.cash_flow_data,
-                enterprise_data=self.enterprise_data,
+                market_data = self.market_data,
                 financial_ratio_data=self.financial_ratio_data
             )
             results['value'] = value_obj.calculate_all_factors()
@@ -111,7 +105,7 @@ class FactorsWrapper:
                 income_data=self.income_data,
                 balance_data=self.balance_data,
                 cash_flow_data=self.cash_flow_data,
-                enterprise_data=self.enterprise_data
+                market_data = self.market_data
             )
             results['stock'] = stock_obj.calculate_all_factors()
         except Exception as e:

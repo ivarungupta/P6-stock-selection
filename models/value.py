@@ -11,17 +11,17 @@ class Value:
         cash_flow_data (pd.DataFrame): Cash flow statement data
         enterprise_data (pd.DataFrame): Enterprise value and market data
     """
-    def __init__(self, income_data, balance_data, cash_flow_data, enterprise_data, financial_ratio_data):
+    def __init__(self, income_data, balance_data, cash_flow_data, market_data, financial_ratio_data):
         self.income_data_master = income_data
         self.balance_data_master = balance_data
         self.cash_flow_data_master = cash_flow_data
-        self.enterprise_data_master = enterprise_data
+        self.market_data_master = market_data
         self.financial_ratio_data_master = financial_ratio_data
         self.required_columns = {
-            'income': {'netIncome', 'revenue', 'eps', 'costOfRevenue', 'operatingExpenses'},
+            'income': {'netIncome', 'revenue', 'eps', 'costOfRevenue', 'operatingExpenses', 'weightedAverageShsOut'},
             'balance': {'totalLiabilities', 'totalAssets', 'netReceivables', 'inventory', 'totalStockholdersEquity'},
             'cash_flow': {'operatingCashFlow'},
-            'enterprise': {'numberOfShares', 'stockPrice'},
+            'market': {'close'},
             'financial_ratio': {'priceCashFlowRatio', 'priceToSalesRatio', 'priceToBookRatio', 'priceEarningsRatio'}
         }
         self._validate_columns()
@@ -80,7 +80,7 @@ class Value:
                     self.income_data = self.income_data_master[self.income_data_master['date'] == date]
                     self.balance_data = self.balance_data_master[self.balance_data_master['date'] == date]
                     self.cash_flow_data = self.cash_flow_data_master[self.cash_flow_data_master['date'] == date]
-                    self.enterprise_data = self.enterprise_data_master[self.enterprise_data_master['date'] == date]
+                    self.market_data = self.market_data_master[self.market_data_master['date'] == date]
                     self.financial_ratio_data = self.financial_ratio_data_master[self.financial_ratio_data_master['date'] == date]
                     factors.append({
                         'date': date,
