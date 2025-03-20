@@ -32,8 +32,10 @@
 │   │   │   ├── sigmoid_normalization.py
 │   │   │   └── tanh_normalization.py
 │   │   └── standardization/
-│   │   │   ├── robust_scaling.py
-│   │   │   └── zscore_scaling.py
+│   │       ├── robust_scaling.py
+│   │       └── zscore_scaling.py
+│   ├── target_engineering/
+│   │   └── five_category_division.py
 │   └── ml.txt
 ├── models/
 │   ├── factors.py
@@ -45,8 +47,7 @@
 │   ├── stock.py
 │   ├── style.py
 │   ├── technical.py
-│   ├── value.py
-│   └── model.txt
+│   └── value.py
 ├── optimization/
 │   └── opt.txt
 ├── .env
@@ -54,6 +55,7 @@
 ├── credentials.py
 ├── main.py
 ├── main.txt
-└── readme.md
+├── readme.md
 └── tickers.csv
+
 ```

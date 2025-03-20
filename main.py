@@ -1,3 +1,9 @@
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 import pandas as pd
 import concurrent.futures
 from data_sources.fmp import FMPWrapper
@@ -7,9 +13,9 @@ from models.factors import FactorsWrapper
 from ml_models.scalars.normalization.min_max_scaling import MinMaxScaling
 from ml_models.feature_engineering.pca import PCAFeatureSelector
 from ml_models.models_ml.random_forest import RandomForestModel
+from ml_models.target_engineering.five_category_division import FiveCategoryDivision
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
-
 
 def process_ticker(ticker, api_key, start_date, end_date):
     try:
@@ -55,35 +61,6 @@ def process_ticker(ticker, api_key, start_date, end_date):
         return pd.DataFrame()
 
 
-def create_target(df):
-    """
-    Create a target column by categorizing the close price change into 5 baskets.
-    The baskets are based on specific percentage change ranges.
-    """
-
-    if "close" in df.columns:
-        df["close_change"] = df["close"].pct_change() * 100  # Calculate percentage change in close price
-        conditions = [
-            df["close_change"] < -10,  # Less than -10%
-            (df["close_change"] >= -10) & (df["close_change"] < 0),  # Between -10% and 0%
-            (df["close_change"] >= 0) & (df["close_change"] < 5),  # Between 0% and 5%
-            (df["close_change"] >= 5) & (df["close_change"] < 10),  # Between 5% and 10%
-            df["close_change"] >= 10  # Greater than 10%
-        ]
-        labels = [0, 1, 2, 3, 4]  # Assign labels for each basket
-        df["target"] = pd.cut(df["close_change"], bins=[-float("inf"), -10, 0, 5, 10, float("inf")], labels=labels)
-        df.drop(columns=["close_change"], inplace=True)
-    else:
-        print("Column 'close' not found in the DataFrame. Creating a default target column.")
-        df["target"] = 0
-    
-    # Shift the target variable one timestamp back
-    df["target"] = df["target"].shift(-1)
-    df.dropna(subset=["target"], inplace=True)  # Drop rows with NaN target values after shifting
-
-    return df
-
-
 def main():
     # Read tickers from CSV
     tickers_df = pd.read_csv("Tickers.csv")
@@ -92,7 +69,11 @@ def main():
     print("Total No of Stocks:", len(tickers))
     print("First few Stock Symbols:", tickers[:20])
 
-    api_key = "bEiVRux9rewQy16TXMPxDqBAQGIW8UBd"
+    # Get API key from the environment variable
+    api_key = os.getenv("API_KEY")
+    if not api_key:
+        raise ValueError("API_KEY not found in .env file.")
+
     start_date = "2022-01-01"
     end_date = "2023-12-31"
 
@@ -119,13 +100,13 @@ def main():
         master_df.to_csv(output_csv, index=False)
         print(f"\nFinal merged factors saved to {output_csv}")
 
-        testing_df = master_df.copy()
-        testing_df = create_target(testing_df)
+        # Use the FiveCategoryDivision class to create a target column
+        target_engineer = FiveCategoryDivision()
+        master_df = target_engineer.create_target(master_df)
 
-        # print(master_df.isnull().sum())
         # ML pipeline processing
         scaler = MinMaxScaling()
-        scaled_df = scaler.transform(testing_df)
+        scaled_df = scaler.transform(master_df)
 
         # Feature engineering using PCA
         pca_selector = PCAFeatureSelector(n_components=5)
@@ -138,7 +119,6 @@ def main():
         # Train Random Forest model
         model = RandomForestModel()
         # Perform train-test split
-
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         model.train(X_train, y_train)
         predictions = model.predict(X_test)
