@@ -1,0 +1,11 @@
+# 
+Mathematical Transformations
+Log Transformation – Used for skewed distributions (e.g., stock prices).
+Power Transformation (Box-Cox, Yeo-Johnson) – Normalizes skewed data.
+Polynomial Features – Adds squared/cubed terms to capture non-linearity.
+Reciprocal & Square Root – Handles heavy-tailed distributions.
+
+
+Date/Time Transformations
+Extract day of week, month, year, quarter for seasonal trends.
+Cyclical Encoding (e.g., sin(time) and cos(time)) for periodic data.
