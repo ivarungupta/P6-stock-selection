@@ -46,7 +46,7 @@ def main():
         # Apply scaling using MinMaxScaling
         scaler = MinMaxScaling()
         scaled_df = scaler.transform(merged_df)
-        print(scaled_df.shape)
+        # print(scaled_df.shape)
         #feature selection, taking top 80% cummulative feature 
         rf_model = RandomForestModel()
         X = scaled_df.drop(columns=['date',"Ticker","target"], errors="ignore")
@@ -54,29 +54,48 @@ def main():
         rf_model.train(X, y)
         feature_selector = CummulativeImportanceSelector(rf_model.model, scaled_df.drop(columns=['date',"Ticker","target"], errors="ignore"))
         selected_features = feature_selector.select_features()
-        print("Total features:", len(scaled_df.columns)-3)
-        print("Selected features:", selected_features)
-        print("Total features selected:", len(selected_features))
+        # print("Total features:", len(scaled_df.columns)-3)
+        # print("Selected features:", selected_features)
+        # print("Total features selected:", len(selected_features))
         features_df = scaled_df[["date","Ticker"]+selected_features + ["target"]]
 
         #  making a 75% train test split
-        train_df = features_df[features_df["date"] < "2023-07-01"]
-        test_df = features_df[features_df["date"] >= "2023-07-01"]
+        train_df = features_df[features_df["date"] < "2023-04-01"]
+        val_df = features_df[(features_df["date"] >= "2023-04-01") & (features_df["date"] < "2023-10-01")]
+        test_df = features_df[features_df["date"] >= "2023-10-01"]
         # Prepare features and target for ML model training
         X_train = train_df.drop(columns=["date","Ticker","target"], errors="ignore")
         y_train = train_df["target"]
-        X_test = test_df.drop(columns=["date","Ticker","target"], errors="ignore")
-        y_test = test_df["target"]
+        X_test = val_df.drop(columns=["date","Ticker","target"], errors="ignore")
+        y_test = val_df["target"]
 
         xgb_model = XGBoostModel()
         xgb_model.train(X_train, y_train)
         predictions = xgb_model.predict(X_test)
-        print("Predictions:", predictions)
+        # print("Predictions:", predictions)
         accuracy = accuracy_score(y_test, predictions)
-        print("Model accuracy:", accuracy)
+        # print("Model accuracy:", accuracy)
+
+        # creating the portfolio for the next quarter
+        test_new_df = test_df.drop(columns=["date","Ticker","target"], errors="ignore")
+        predictions = xgb_model.predict(test_new_df)
+        # print("Predictions:", predictions)
+        # print("Predictions shape:", type(predictions))
+        pred_proba = xgb_model.predict_proba(test_new_df)
+        test_df["target_pred_proba"] = pred_proba
+        test_df["target_pred"] = predictions
+        # Sort test_df by target_pred and then by target_pred_proba in descending order
+        test_df = test_df.sort_values(by=["target_pred", "target_pred_proba"], ascending=[False, False])
+        print("Top 5 stocks for next quarter:")
+        print(test_df['Ticker'].head(5))
 
     else:
         print("No factors were successfully calculated.")
 
 if __name__ == "__main__":
     main()
+
+'''
+Optimizing the ML parameters
+Optimizing the factors
+'''

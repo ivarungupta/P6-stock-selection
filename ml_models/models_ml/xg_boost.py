@@ -35,3 +35,12 @@ class XGBoostModel:
         :return: Predictions.
         """
         return self.model.predict(X)
+    
+    def predict_proba(self, X) -> np.ndarray:
+        """
+        Predict the maximum probabilities using the trained model.
+
+        :param X: Feature set.
+        :return: Maximum predicted probabilities.
+        """
+        return np.max(self.model.predict_proba(X), axis=1)
