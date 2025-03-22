@@ -46,5 +46,6 @@ class FiveCategoryDivision:
         # Shift the target variable one timestamp back
         df["target"] = df["target"].shift(-1)
         # Drop rows with NaN target values after shifting
-        df.dropna(subset=["target"], inplace=True)
+        df.fillna(method="ffill", inplace=True)
+
         return df

@@ -5,8 +5,10 @@ from processing_tickers import process_tickers
 
 # Import ML pipeline components
 from ml_models.scalars.normalization.min_max_scaling import MinMaxScaling
-from ml_models.feature_engineering.pca import PCAFeatureSelector
+# from ml_models.feature_engineering.pca import PCAFeatureSelector
+from ml_models.feature_selection.eighty_cummulative import CummulativeImportanceSelector
 from ml_models.models_ml.random_forest import RandomForestModel
+from ml_models.models_ml.xg_boost import XGBoostModel
 from ml_models.target_engineering.five_category_division import FiveCategoryDivision
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
@@ -44,23 +46,35 @@ def main():
         # Apply scaling using MinMaxScaling
         scaler = MinMaxScaling()
         scaled_df = scaler.transform(merged_df)
+        print(scaled_df.shape)
+        #feature selection, taking top 80% cummulative feature 
+        rf_model = RandomForestModel()
+        X = scaled_df.drop(columns=['date',"Ticker","target"], errors="ignore")
+        y = scaled_df["target"].values
+        rf_model.train(X, y)
+        feature_selector = CummulativeImportanceSelector(rf_model.model, scaled_df.drop(columns=['date',"Ticker","target"], errors="ignore"))
+        selected_features = feature_selector.select_features()
+        print("Total features:", len(scaled_df.columns)-3)
+        print("Selected features:", selected_features)
+        print("Total features selected:", len(selected_features))
+        features_df = scaled_df[["date","Ticker"]+selected_features + ["target"]]
 
-        # Perform feature engineering using PCA
-        pca_selector = PCAFeatureSelector(n_components=5)
-        features_df = pca_selector.select_features(scaled_df)
-
+        #  making a 75% train test split
+        train_df = features_df[features_df["date"] < "2023-07-01"]
+        test_df = features_df[features_df["date"] >= "2023-07-01"]
         # Prepare features and target for ML model training
-        X = features_df.drop(columns=["target"], errors="ignore")
-        y = merged_df["target"]
+        X_train = train_df.drop(columns=["date","Ticker","target"], errors="ignore")
+        y_train = train_df["target"]
+        X_test = test_df.drop(columns=["date","Ticker","target"], errors="ignore")
+        y_test = test_df["target"]
 
-        # Train Random Forest model
-        model = RandomForestModel()
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        model.train(X_train, y_train)
-        predictions = model.predict(X_test)
+        xgb_model = XGBoostModel()
+        xgb_model.train(X_train, y_train)
+        predictions = xgb_model.predict(X_test)
         print("Predictions:", predictions)
         accuracy = accuracy_score(y_test, predictions)
         print("Model accuracy:", accuracy)
+
     else:
         print("No factors were successfully calculated.")
 
