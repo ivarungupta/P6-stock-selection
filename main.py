@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 import pandas as pd
 from processing_tickers import process_tickers
 
-# Import ML pipeline components
 from ml_models.scalars.normalization.min_max_scaling import MinMaxScaling
 # from ml_models.feature_engineering.pca import PCAFeatureSelector
 from ml_models.feature_selection.eighty_cummulative import CummulativeImportanceSelector
@@ -14,16 +13,13 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
 def main():
-    # Load environment variables
     load_dotenv()
-
-    # Read tickers from CSV file
+    
     tickers_df = pd.read_csv("Tickers.csv")
     tickers = tickers_df["Symbol"].tolist()
     print("Total No of Stocks:", len(tickers))
     print("First few Stock Symbols:", tickers[:20])
 
-    # Get API key from the environment variable
     api_key = os.getenv("API_KEY")
     if not api_key:
         raise ValueError("API_KEY not found in .env file.")
@@ -31,7 +27,6 @@ def main():
     start_date = "2022-01-01"
     end_date = "2023-12-31"
 
-    # Process tickers using the dedicated processing_tickers module
     merged_df = process_tickers(tickers, api_key, start_date, end_date)
     
     if not merged_df.empty:
@@ -39,11 +34,9 @@ def main():
         merged_df.to_csv(output_csv, index=False)
         print(f"\nFinal merged factors saved to {output_csv}")
 
-        # Create target column using the FiveCategoryDivision class
         target_engineer = FiveCategoryDivision()
         merged_df = target_engineer.create_target(merged_df)
 
-        # Apply scaling using MinMaxScaling
         scaler = MinMaxScaling()
         scaled_df = scaler.transform(merged_df)
         # print(scaled_df.shape)
@@ -59,11 +52,10 @@ def main():
         # print("Total features selected:", len(selected_features))
         features_df = scaled_df[["date","Ticker"]+selected_features + ["target"]]
 
-        #  making a 75% train test split
         train_df = features_df[features_df["date"] < "2023-04-01"]
         val_df = features_df[(features_df["date"] >= "2023-04-01") & (features_df["date"] < "2023-10-01")]
         test_df = features_df[features_df["date"] >= "2023-10-01"]
-        # Prepare features and target for ML model training
+
         X_train = train_df.drop(columns=["date","Ticker","target"], errors="ignore")
         y_train = train_df["target"]
         X_test = val_df.drop(columns=["date","Ticker","target"], errors="ignore")

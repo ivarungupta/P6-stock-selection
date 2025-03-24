@@ -34,6 +34,8 @@
 │   │   └── standardization/
 │   │       ├── robust_scaling.py
 │   │       └── zscore_scaling.py
+│   ├── feature_engineering/
+│   │   └── eighty_cummulative.py
 │   ├── target_engineering/
 │   │   └── five_category_division.py
 │   └── ml.txt
@@ -52,9 +54,10 @@
 │   └── opt.txt
 ├── .env
 ├── .gitignore
-├── credentials.py
+├── config.py
 ├── main.py
 ├── main.txt
+├── final_merged_factors.csv
 ├── readme.md
 └── tickers.csv
 
