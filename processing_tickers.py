@@ -63,7 +63,7 @@ def process_tickers(tickers, api_key, start_date, end_date, max_workers=10):
       - Collects the individual processed DataFrames and concatenates them.
     Returns a single merged DataFrame for all tickers.
     """
-    tickers = tickers[:20]
+    # tickers = tickers[:20]
     merged_factors_list = []
     
     with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
