@@ -53,6 +53,14 @@ class FMPWrapper:
         endpoint = f"income-statement/{symbol}"
         params = {"period": period}
         return self._make_request(endpoint, params)
+    
+    def get_sp500_constituent(self):
+        """
+        Fetch the historical S&P 500 constituent change data.
+        Returns a list of change records.
+        """
+        endpoint = "historical/sp500_constituent"
+        return self._make_request(endpoint)
 
     def get_balance_sheet(self, symbol, period="quarterly"):
         """

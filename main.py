@@ -1,10 +1,10 @@
 import os
 from dotenv import load_dotenv
 import pandas as pd
+import ast
 from processing_tickers import process_tickers
 
 from ml_models.scalars.normalization.min_max_scaling import MinMaxScaling
-# from ml_models.feature_engineering.pca import PCAFeatureSelector
 from ml_models.feature_selection.eighty_cummulative import CummulativeImportanceSelector
 from ml_models.models_ml.random_forest import RandomForestModel
 from ml_models.models_ml.xg_boost import XGBoostModel
@@ -15,133 +15,137 @@ from sklearn.metrics import accuracy_score
 from config import START_DATE, END_DATE, TRAIN_END_DATE
 
 def generate_quarterly_dates(start_date, end_date):
-    # Convert input strings to datetime
-    start_date = pd.to_datetime(start_date)
-    end_date = pd.to_datetime(end_date)
-
-    # Generate quarter start dates
-    quarterly_dates = pd.date_range(start=start_date, end=end_date, freq='QS').to_list()
-
-    # Ensure the start_date is included if it is a quarter start
-    if start_date not in quarterly_dates:
-        quarterly_dates.insert(0, start_date)
-
-    # Format as "YYYY-MM-DD"
-    quarterly_dates = [date.strftime('%Y-%m-%d') for date in quarterly_dates]
-
-    return quarterly_dates
-
+    """
+    Generate a list of quarterly boundary dates (formatted as YYYY-MM-DD)
+    between start_date and end_date.
+    """
+    start_dt = pd.to_datetime(start_date)
+    end_dt = pd.to_datetime(end_date)
+    quarterly_dates = pd.date_range(start=start_dt, end=end_dt, freq='QS').to_list()
+    if start_dt not in quarterly_dates:
+        quarterly_dates.insert(0, start_dt)
+    return [dt.strftime('%Y-%m-%d') for dt in quarterly_dates]
 
 def main():
     load_dotenv()
     
-    tickers_df = pd.read_csv("Tickers.csv")
-    tickers_df = tickers_df[:20]
-    tickers = tickers_df["Symbol"].tolist()
-    print("Total No of Stocks:", len(tickers))
-    print("First few Stock Symbols:", tickers[:20])
-
+    # Load the S&P 500 constituents timeline CSV.
+    # This file contains rows with "date" and "constituents" (a string representation of a list).
+    timeline_df = pd.read_csv("sp500_constituents_timeline.csv")
+    timeline_df["date"] = pd.to_datetime(timeline_df["date"])
+    timeline_df["constituents"] = timeline_df["constituents"].apply(lambda x: ast.literal_eval(x))
+    
+    # Derive the ticker universe from the timeline.
+    ticker_set = set()
+    for constituents in timeline_df["constituents"]:
+        ticker_set.update(constituents)
+    # For now, limit to 20 tickers (alphabetically sorted)
+    universe = sorted(list(ticker_set))[:20]
+    print("Derived Ticker Universe (20 tickers):", universe)
+    
     api_key = os.getenv("API_KEY")
     if not api_key:
         raise ValueError("API_KEY not found in .env file.")
-
-    merged_df = process_tickers(tickers, api_key, START_DATE, END_DATE)
     
-    if not merged_df.empty:
-        output_csv = "final_merged_factors.csv"
-        merged_df.to_csv(output_csv, index=False)
-        print(f"\nFinal merged factors saved to {output_csv}")
-
-        target_engineer = FiveCategoryDivision()
-        merged_df = target_engineer.create_target(merged_df)
-
-        scaler = MinMaxScaling()
-        scaled_df = scaler.transform(merged_df)
-        # Feature selection using cumulative importance
+    # Process tickers (the derived universe) over the full period.
+    merged_df = process_tickers(universe, api_key, START_DATE, END_DATE)
+    if merged_df.empty:
+        print("No factors were successfully calculated.")
+        return
+    merged_df.to_csv("final_merged_factors.csv", index=False)
+    print("Saved final_merged_factors.csv")
+    
+    # Create target variable and scale the data.
+    target_engineer = FiveCategoryDivision()
+    merged_df = target_engineer.create_target(merged_df)
+    scaler = MinMaxScaling()
+    scaled_df = scaler.transform(merged_df)
+    scaled_df["date"] = pd.to_datetime(scaled_df["date"])
+    
+    # Define training and test splits.
+    train_data = scaled_df[scaled_df["date"] < pd.to_datetime(TRAIN_END_DATE)].copy()
+    test_data = scaled_df[scaled_df["date"] >= pd.to_datetime(TRAIN_END_DATE)].copy()
+    
+    # Generate quarterly dates for the prediction period.
+    quarters = generate_quarterly_dates(TRAIN_END_DATE, END_DATE)
+    
+    predictions = []
+    xgb_model = XGBoostModel()
+    
+    # Loop through each quarter in the prediction period.
+    for i, quarter in enumerate(quarters):
+        current_quarter = pd.to_datetime(quarter)
+        print(f"\nProcessing quarter: {quarter}")
+        
+        # Determine active constituents for the current quarter from the timeline.
+        active_rows = timeline_df[timeline_df["date"] == current_quarter]
+        if not active_rows.empty:
+            active_constituents = active_rows["constituents"].iloc[0]
+        else:
+            past = timeline_df[timeline_df["date"] < current_quarter]
+            if not past.empty:
+                active_constituents = past.sort_values("date").iloc[-1]["constituents"]
+            else:
+                active_constituents = []
+        
+        # Filter training data: retain only records whose tickers are active in this quarter.
+        train_active = train_data[train_data["Ticker"].isin(active_constituents)].copy()
+        if train_active.empty:
+            print(f"No training data available for active constituents in quarter {quarter}. Skipping.")
+            continue
+        
+        # Define test data for the current quarter.
+        if i < len(quarters) - 1:
+            next_quarter = pd.to_datetime(quarters[i+1])
+            test_quarter = test_data[(test_data["date"] >= current_quarter) & (test_data["date"] < next_quarter)].copy()
+        else:
+            test_quarter = test_data[test_data["date"] >= current_quarter].copy()
+        # Filter test data to only include active tickers.
+        test_active = test_quarter[test_quarter["Ticker"].isin(active_constituents)].copy()
+        if test_active.empty:
+            print(f"No test data available for active constituents in quarter {quarter}. Skipping.")
+            continue
+        
+        # Re-run feature selection on the current active training data.
+        X_train = train_active.drop(columns=["date", "Ticker", "target"], errors="ignore")
+        y_train = train_active["target"]
         rf_model = RandomForestModel()
-        X = scaled_df.drop(columns=['date', "Ticker", "target"], errors="ignore")
-        y = scaled_df["target"].values
-        rf_model.train(X, y)
-        feature_selector = CummulativeImportanceSelector(rf_model.model, scaled_df.drop(columns=['date', "Ticker", "target"], errors="ignore"))
+        rf_model.train(X_train, y_train)
+        feature_selector = CummulativeImportanceSelector(rf_model.model, X_train)
         selected_features = feature_selector.select_features()
         
-        features_df = scaled_df[["date", "Ticker"] + selected_features + ["target"]]
-        # new method of training
-        train_data = features_df[features_df['date'] < TRAIN_END_DATE]
-        test_data = features_df[features_df['date'] >= TRAIN_END_DATE]
+        # Prepare datasets using selected features.
+        X_train_sel = X_train[selected_features]
+        X_test_sel = test_active.drop(columns=["date", "Ticker", "target"], errors="ignore")[selected_features]
+        y_test = test_active["target"]
         
-        xgb_model = XGBoostModel()
-
-        predictions = []
-
-        quarters = generate_quarterly_dates(TRAIN_END_DATE, END_DATE)
+        # Train XGBoost model and predict on current quarter.
+        xgb_model.train(X_train_sel, y_train)
+        pred = xgb_model.predict(X_test_sel)
+        acc = accuracy_score(y_test, pred)
+        pred_proba = xgb_model.predict_proba(X_test_sel)
         
-        for i, quarter in enumerate(quarters):
-            # Train the model on available data
-            X_train = train_data.drop(columns=["date", "Ticker", "target"], errors="ignore")
-            y_train = train_data["target"]
-            xgb_model.train(X_train, y_train)
-
-            # Predict for the current quarter
-            test_df = test_data[(test_data['date'] >= quarter) & (test_data['date'] < quarters[i + 1])].copy() if i < len(quarters) - 1 else test_data[test_data['date'] >= quarter].copy()
-            X_test = test_df[selected_features]
-            y_test = test_df["target"]
-            pred = xgb_model.predict(X_test)
-
-            accuracy = accuracy_score(y_test, pred)
-            pred_proba = xgb_model.predict_proba(X_test)
-            test_df["target_pred_proba"] = pred_proba
-            test_df["target_pred"] = pred
-            
-            # Sort test_df by target_pred and then by target_pred_proba in descending order
-            test_df = test_df.sort_values(by=["target_pred", "target_pred_proba"], ascending=[False, False])
-            ticker_list = test_df['Ticker'].head(5).tolist()
-            
-            # Store predictions
-            predictions.append(pd.DataFrame({'Date': [quarter], 'Ticker_list': [ticker_list]}))
-
-            print(f"Accuracy for {quarter}: {accuracy}")
-            print(f"Top 5 stocks for {quarter}:")
-            print(ticker_list)
-            print("\n")
-            print("--------------------------------------------------")
-            print("\n")
-            
-            # Add the newly predicted quarter's real data to training for the next step
-            actual_data = test_data[(test_data['date'] >= quarter) & (test_data['date'] < quarters[i + 1])].copy() if i < len(quarters) - 1 else test_data[test_data['date'] >= quarter].copy() 
-            train_data = pd.concat([train_data, actual_data], axis=0)
-
+        test_active["target_pred_proba"] = pred_proba
+        test_active["target_pred"] = pred
+        test_active = test_active.sort_values(by=["target_pred", "target_pred_proba"], ascending=[False, False])
+        top5 = test_active["Ticker"].head(5).tolist()
         
+        predictions.append(pd.DataFrame({"Quarter": [quarter], "Top5_Tickers": [top5]}))
         
-
-        # Use the imported configuration dates to split the data
-        # train_df = features_df[features_df["date"] < TRAIN_END_DATE]
-        # # val_df = features_df[(features_df["date"] >= TRAIN_END_DATE) & (features_df["date"] < VAL_END_DATE)]
-        # test_df = features_df[features_df["date"] >= VAL_END_DATE]
-
-        # X_train = train_df.drop(columns=["date", "Ticker", "target"], errors="ignore")
-        # y_train = train_df["target"]
-        # # X_test = val_df.drop(columns=["date", "Ticker", "target"], errors="ignore")
-        # # y_test = val_df["target"]
-
-        # xgb_model = XGBoostModel()
-        # xgb_model.train(X_train, y_train)
-        # predictions = xgb_model.predict(X_test)
-        # accuracy = accuracy_score(y_test, predictions)
-
-        # # Create the portfolio for the next quarter using test set
-        # test_new_df = test_df.drop(columns=["date", "Ticker", "target"], errors="ignore")
-        # predictions = xgb_model.predict(test_new_df)
-        # pred_proba = xgb_model.predict_proba(test_new_df)
-        # test_df["target_pred_proba"] = pred_proba
-        # test_df["target_pred"] = predictions
+        print(f"Accuracy for {quarter}: {acc}")
+        print(f"Top 5 stocks for {quarter}: {top5}")
         
-        # # Sort test_df by target_pred and then by target_pred_proba in descending order
-        # test_df = test_df.sort_values(by=["target_pred", "target_pred_proba"], ascending=[False, False])
-        # print("Top 5 stocks for next quarter:")
-        # print(test_df['Ticker'].head(5))
+        # Update training data for next quarter: keep only active tickers and append current quarter's test data.
+        train_data = train_data[train_data["Ticker"].isin(active_constituents)].copy()
+        train_data = pd.concat([train_data, test_active], ignore_index=True)
+    
+    # Save the quarterly predictions.
+    if predictions:
+        all_predictions = pd.concat(predictions, ignore_index=True)
+        all_predictions.to_csv("quarterly_predictions.csv", index=False)
+        print("Saved quarterly_predictions.csv")
     else:
-        print("No factors were successfully calculated.")
+        print("No quarterly predictions were generated.")
 
 if __name__ == "__main__":
     main()
