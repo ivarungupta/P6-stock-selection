@@ -12,6 +12,9 @@ from ml_models.models_ml.xg_boost import XGBoostModel
 from ml_models.target_engineering.five_category_division import FiveCategoryDivision
 from sklearn.metrics import accuracy_score
 
+# Import hyperparameter tuner from its new location
+from ml_models.hyperparameter_tuning.hyper_parameter_tuning import HyperparameterTuner
+
 # Import date configuration
 from config import START_DATE, END_DATE, TRAIN_END_DATE
 
@@ -45,7 +48,7 @@ def main():
     for constituents in timeline_df["constituents"]:
         ticker_set.update(constituents)
     # For now, limit to 20 tickers (alphabetically sorted)
-    universe = sorted(list(ticker_set))[:20]
+    universe = sorted(list(ticker_set))
     print("Derived Ticker Universe (20 tickers):", universe)
     
     api_key = os.getenv("API_KEY")
@@ -98,11 +101,35 @@ def main():
     train_data = scaled_df[scaled_df["date"] < pd.to_datetime(TRAIN_END_DATE)].copy()
     test_data = scaled_df[scaled_df["date"] >= pd.to_datetime(TRAIN_END_DATE)].copy()
     
+    # Optional: Hyperparameter tuning on training data using the XGBoost model.
+    # Prepare features and target from the training set.
+    X_tune = train_data.drop(columns=["date", "Ticker", "target"], errors="ignore")
+    y_tune = train_data["target"]
+
+    # Initialize XGBoost model and get its underlying estimator.
+    xgb_model = XGBoostModel()
+    estimator = xgb_model.model  # XGBClassifier instance
+
+    # Define a parameter grid for XGBoost tuning.
+    param_grid = {
+        'n_estimators': [50, 100, 200],
+        'learning_rate': [0.01, 0.1, 0.2],
+        'max_depth': [3, 5, 7]
+    }
+
+    # Instantiate the HyperparameterTuner.
+    tuner = HyperparameterTuner(estimator, param_grid, scoring='accuracy', cv=3, n_jobs=-1)
+    best_estimator, best_score, best_params = tuner.tune_with_grid_search(X_tune, y_tune)
+    print("Hyperparameter Tuning (Grid Search) - Best Score:", best_score)
+    print("Hyperparameter Tuning (Grid Search) - Best Params:", best_params)
+
+    # Update the XGBoost model with the tuned hyperparameters.
+    xgb_model.model.set_params(**best_params)
+
     # Generate quarterly dates for the prediction period.
     quarters = generate_quarterly_dates(TRAIN_END_DATE, END_DATE)
     
     predictions = []
-    xgb_model = XGBoostModel()
     
     # Loop through each quarter in the prediction period.
     for i, quarter in enumerate(quarters):
@@ -159,7 +186,7 @@ def main():
             print(f"Error preparing training/test sets for quarter {quarter}: {e}")
             continue
         
-        # Train XGBoost model and predict on current quarter.
+        # Train the tuned XGBoost model and predict on current quarter.
         try:
             xgb_model.train(X_train_sel, y_train)
             pred = xgb_model.predict(X_test_sel)
