@@ -4,12 +4,6 @@ import numpy as np
 class Value:
     """
     A class to calculate value-related financial factors.
-    
-    Attributes:
-        income_data (pd.DataFrame): Income statement data
-        balance_data (pd.DataFrame): Balance sheet data
-        cash_flow_data (pd.DataFrame): Cash flow statement data
-        enterprise_data (pd.DataFrame): Enterprise value and market data
     """
     def __init__(self, income_data, balance_data, cash_flow_data, market_data, financial_ratio_data):
         self.income_data_master = income_data
@@ -36,69 +30,106 @@ class Value:
         if missing_cols:
             raise ValueError(f"Missing required columns: {', '.join(missing_cols)}")
 
+    def safe_get_value(self, df, column):
+        if df.empty or column not in df.columns:
+            return np.nan
+        try:
+            return df[column].iloc[0]
+        except Exception:
+            return np.nan
+
     def calculate_financial_liability(self):
-        return self.balance_data['totalLiabilities'].iloc[0]
-    # ----------------
+        return self.safe_get_value(self.balance_data, 'totalLiabilities')
+
     def calculate_price_cashflow(self):
-        return self.financial_ratio_data['priceCashFlowRatio'].iloc[0]
+        return self.safe_get_value(self.financial_ratio_data, 'priceCashFlowRatio')
     
     def calculate_priceToBook(self):
-        return self.financial_ratio_data['priceToBookRatio'].iloc[0]
+        return self.safe_get_value(self.financial_ratio_data, 'priceToBookRatio')
 
     def calculate_price_to_sales(self):
-        return self.financial_ratio_data['priceToSalesRatio'].iloc[0]
+        return self.safe_get_value(self.financial_ratio_data, 'priceToSalesRatio')
 
     def calculate_price_to_earnings(self):
-        return self.financial_ratio_data['priceEarningsRatio'].iloc[0]
-    # ----------------
+        return self.safe_get_value(self.financial_ratio_data, 'priceEarningsRatio')
+
     def calculate_ltd_to_ta(self):
-        return self.balance_data['totalLiabilities'].iloc[0] / self.balance_data['totalAssets'].iloc[0]
+        total_assets = self.safe_get_value(self.balance_data, 'totalAssets')
+        if pd.isna(total_assets) or total_assets == 0:
+            return np.nan
+        total_liabilities = self.safe_get_value(self.balance_data, 'totalLiabilities')
+        return total_liabilities / total_assets
     
     def calculate_net_profit(self):
-        return self.income_data['netIncome'].iloc[0]
+        return self.safe_get_value(self.income_data, 'netIncome')
 
     def calculate_ebit(self):
-        return self.income_data['revenue'].iloc[0] - self.income_data['costOfRevenue'].iloc[0] - self.income_data['operatingExpenses'].iloc[0]
+        revenue = self.safe_get_value(self.income_data, 'revenue')
+        cost = self.safe_get_value(self.income_data, 'costOfRevenue')
+        op_exp = self.safe_get_value(self.income_data, 'operatingExpenses')
+        if pd.isna(revenue) or pd.isna(cost) or pd.isna(op_exp):
+            return np.nan
+        return revenue - cost - op_exp
 
     def calculate_working_capital_ratio(self):
-        return self.cash_flow_data['operatingCashFlow'].iloc[0] / self.balance_data['totalAssets'].iloc[0]
+        total_assets = self.safe_get_value(self.balance_data, 'totalAssets')
+        if pd.isna(total_assets) or total_assets == 0:
+            return np.nan
+        op_cf = self.safe_get_value(self.cash_flow_data, 'operatingCashFlow')
+        return op_cf / total_assets
 
     def calculate_quick_ratio(self):
-        return (self.balance_data['netReceivables'].iloc[0] + self.balance_data['inventory'].iloc[0]) / self.income_data['revenue'].iloc[0]
+        revenue = self.safe_get_value(self.income_data, 'revenue')
+        if pd.isna(revenue) or revenue == 0:
+            return np.nan
+        net_receivables = self.safe_get_value(self.balance_data, 'netReceivables')
+        inventory = self.safe_get_value(self.balance_data, 'inventory')
+        return (net_receivables + inventory) / revenue
 
     def calculate_ev_to_ocl(self):
-        return self.cash_flow_data['operatingCashFlow'].iloc[0] / self.balance_data['totalLiabilities'].iloc[0]
+        total_liabilities = self.safe_get_value(self.balance_data, 'totalLiabilities')
+        if pd.isna(total_liabilities) or total_liabilities == 0:
+            return np.nan
+        op_cf = self.safe_get_value(self.cash_flow_data, 'operatingCashFlow')
+        return op_cf / total_liabilities
 
     def calculate_debt_to_equity(self):
-        return self.balance_data['totalLiabilities'].iloc[0] / self.balance_data['totalStockholdersEquity'].iloc[0]
+        total_equity = self.safe_get_value(self.balance_data, 'totalStockholdersEquity')
+        if pd.isna(total_equity) or total_equity == 0:
+            return np.nan
+        total_liabilities = self.safe_get_value(self.balance_data, 'totalLiabilities')
+        return total_liabilities / total_equity
 
     def calculate_all_factors(self):
+        factors = []
+        for i, income_row in self.income_data_master.iterrows():
+            date = income_row['date']
+            self.income_data = self.income_data_master[self.income_data_master['date'] == date]
+            self.balance_data = self.balance_data_master[self.balance_data_master['date'] == date]
+            self.cash_flow_data = self.cash_flow_data_master[self.cash_flow_data_master['date'] == date]
+            self.market_data = self.market_data_master[self.market_data_master['date'] == date]
+            self.financial_ratio_data = self.financial_ratio_data_master[self.financial_ratio_data_master['date'] == date]
+            # If any required data is missing, skip this date
+            if self.income_data.empty or self.balance_data.empty or self.cash_flow_data.empty or self.financial_ratio_data.empty:
+                print(f"Warning: Skipping value factors for date {date} due to missing data")
+                continue
+            factors.append({
+                'date': date,
+                'financial_liability': self.calculate_financial_liability(),
+                'net_profit': self.calculate_net_profit(),
+                'EBIT': self.calculate_ebit(),
+                'LTD/TA': self.calculate_ltd_to_ta(),
+                'WCR': self.calculate_working_capital_ratio(),
+                'QR': self.calculate_quick_ratio(),
+                'EV/OCL': self.calculate_ev_to_ocl(),
+                'D/E': self.calculate_debt_to_equity(),
+                'P/E': self.calculate_price_to_earnings(),
+                'P/S': self.calculate_price_to_sales(),
+                'PriceToCashFlow': self.calculate_price_cashflow(),
+                'priceToBook': self.calculate_priceToBook()
+            })
         try:
-            factors = []
-            for i, income_row in self.income_data_master.iterrows():
-                    date = income_row['date']
-                    self.income_data = self.income_data_master[self.income_data_master['date'] == date]
-                    self.balance_data = self.balance_data_master[self.balance_data_master['date'] == date]
-                    self.cash_flow_data = self.cash_flow_data_master[self.cash_flow_data_master['date'] == date]
-                    self.market_data = self.market_data_master[self.market_data_master['date'] == date]
-                    self.financial_ratio_data = self.financial_ratio_data_master[self.financial_ratio_data_master['date'] == date]
-                    factors.append({
-                        'date': date,
-                        'financial_liability': self.calculate_financial_liability(),
-                        'net_profit': self.calculate_net_profit(),
-                        'EBIT': self.calculate_ebit(),
-                        'LTD/TA': self.calculate_ltd_to_ta(),
-                        'WCR': self.calculate_working_capital_ratio(),
-                        'QR': self.calculate_quick_ratio(),
-                        'EV/OCL': self.calculate_ev_to_ocl(),
-                        'D/E': self.calculate_debt_to_equity(),
-                        'P/E': self.calculate_price_to_earnings(),
-                        'P/S': self.calculate_price_to_sales(),
-                        'PriceToCashFlow': self.calculate_price_cashflow(),
-                        'priceToBook': self.calculate_priceToBook()
-                    })
-
             return pd.DataFrame(factors)
         except Exception as e:
             print(f"Error calculating value factors: {e}")
-            return {}
+            return pd.DataFrame()

@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 import numpy as np
+
 class FMPWrapper:
     def __init__(self, api_key):
         """
@@ -56,11 +57,18 @@ class FMPWrapper:
     
     def get_sp500_constituent(self):
         """
-        Fetch the historical S&P 500 constituent change data.
-        Returns a list of change records.
+        Fetch the S&P 500 constituent data.
+        The endpoint has been updated to:
+        https://financialmodelingprep.com/stable/sp500-constituent?apikey=YOUR_API_KEY
+        Returns a list of constituent records.
         """
-        endpoint = "historical/sp500_constituent"
-        return self._make_request(endpoint)
+        url = "https://financialmodelingprep.com/stable/sp500-constituent"
+        params = {"apikey": self.api_key}
+        response = requests.get(url, params=params)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            response.raise_for_status()
 
     def get_balance_sheet(self, symbol, period="quarterly"):
         """
@@ -90,7 +98,7 @@ class FMPWrapper:
         """
         Fetch the latest stock news for a given symbol.
         """
-        endpoint = f"stock_news"
+        endpoint = "stock_news"
         params = {"tickers": symbol, "limit": limit}
         return self._make_request(endpoint, params)
 

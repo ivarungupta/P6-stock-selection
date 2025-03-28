@@ -4,12 +4,6 @@ import numpy as np
 class Quality:
     """
     A class to calculate quality-related financial factors.
-    
-    Attributes:
-        income_data (pd.DataFrame): Income statement data
-        balance_data (pd.DataFrame): Balance sheet data
-        cash_flow_data (pd.DataFrame): Cash flow statement data
-        prev_income_data (pd.DataFrame, optional): Previous period income data
     """
     def __init__(self, income_data, balance_data, cash_flow_data):
         self.income_data_master = income_data
@@ -37,30 +31,39 @@ class Quality:
             raise ValueError(f"Missing required columns: {', '.join(missing_cols)}")
 
     def calculate_net_profit_to_revenue(self):
+        if self.income_data.empty or self.income_data['revenue'].iloc[0] == 0:
+            return np.nan
         return self.income_data['netIncome'].iloc[0] / self.income_data['revenue'].iloc[0]
 
     def calculate_decm(self):
+        if self.balance_data.empty or self.balance_data['totalAssets'].iloc[0] == 0:
+            return np.nan
         return self.balance_data['totalLiabilities'].iloc[0] / self.balance_data['totalAssets'].iloc[0]
 
     def calculate_roe(self):
+        if self.balance_data.empty or self.balance_data['totalStockholdersEquity'].iloc[0] == 0:
+            return np.nan
         return self.income_data['netIncome'].iloc[0] / self.balance_data['totalStockholdersEquity'].iloc[0]
 
     def calculate_roa(self):
+        if self.balance_data.empty or self.balance_data['totalAssets'].iloc[0] == 0:
+            return np.nan
         return self.income_data['netIncome'].iloc[0] / self.balance_data['totalAssets'].iloc[0]
 
     def calculate_gmi(self):
-        if self.prev_income_data is None:
+        if self.prev_income_data is None or self.prev_income_data.empty or self.prev_income_data['revenue'].iloc[0] == 0:
             prev_gross_margin = 0
         else:
             prev_gross_margin = self.prev_income_data['grossProfit'].iloc[0] / self.prev_income_data['revenue'].iloc[0]
-        
+        if self.income_data.empty or self.income_data['revenue'].iloc[0] == 0:
+            return np.nan
         current_gross_margin = self.income_data['grossProfit'].iloc[0] / self.income_data['revenue'].iloc[0]
-        
         return current_gross_margin - prev_gross_margin
 
     def calculate_acca(self):
-        return ((self.income_data['netIncome'].iloc[0] - self.cash_flow_data['operatingCashFlow'].iloc[0]) /
-                self.balance_data['totalAssets'].iloc[0])
+        if self.balance_data.empty or self.balance_data['totalAssets'].iloc[0] == 0:
+            return np.nan
+        return (self.income_data['netIncome'].iloc[0] - self.cash_flow_data['operatingCashFlow'].iloc[0]) / self.balance_data['totalAssets'].iloc[0]
 
     def calculate_all_factors(self):
         try:
@@ -73,7 +76,6 @@ class Quality:
                 self.prev_income_data = None
                 if not self.income_data_master[self.income_data_master['date'] < date].empty:
                     self.prev_income_data = self.income_data_master[self.income_data_master['date'] < date].iloc[-1:]
-
                 factors.append({
                     'date': date,
                     'net_profit_to_total_revenue': self.calculate_net_profit_to_revenue(),
@@ -83,9 +85,7 @@ class Quality:
                     'ACCA': self.calculate_acca(),
                     'GMI': self.calculate_gmi()
                 })
-
             return pd.DataFrame(factors)
-        
         except Exception as e:
             print(f"Error calculating quality factors: {e}")
-            return {}
+            return pd.DataFrame()

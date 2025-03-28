@@ -4,133 +4,63 @@ import numpy as np
 class Style:
     """
     A class to calculate style-related market factors.
-    
-    Attributes:
-        df (pd.DataFrame): DataFrame containing OHLCV market data
-        sp500_returns (pd.DataFrame): DataFrame containing S&P 500 returns
-        tickers (list): List of ticker symbols
     """
     def __init__(self, df, sp500_returns, tickers):
-        self.df = df
-        self.sp500_returns = sp500_returns
+        self.df = df.copy()
+        self.sp500_returns = sp500_returns.copy()
         self.tickers = tickers
-        self.required_columns = {'close', 'volume'}
+        self.required_columns = {'close', 'volume', 'date'}
         self._validate_columns()
 
     def _validate_columns(self):
-        """Validate required columns are present in the DataFrame"""
         missing_cols = self.required_columns - set(self.df.columns)
         if missing_cols:
             raise ValueError(f"Missing required columns: {missing_cols}")
 
-    def calculate_beta(self, window_size=62, step_size=62):
-        """
-        Calculate beta using rolling windows
-        
-        Args:
-            window_size (int): Size of rolling window in days
-            step_size (int): Step size for non-overlapping windows
-        """
-        style_factors = pd.DataFrame(index=self.df.index)
-        
-        for ticker in self.tickers:
-            # Get stock returns
-            stock_returns = self.df[['date','close']].copy()
-            stock_returns['close'] = stock_returns['close'].pct_change()
-            # Merge with market returns
-            merged_df = pd.merge(
-                stock_returns,
-                self.sp500_returns,
-                on='date',
-                how='outer'
-            )
-            merged_df.fillna(0)
-            merged_df.set_index('date', inplace=True)
-            
-            # Calculate rolling betas
-            betas = []
-            for start in range(0, len(merged_df) - window_size + 1, step_size):
-                end = start + window_size
-                stock_window = merged_df['close'].iloc[start:end]
-                market_window = merged_df['changePercent'].iloc[start:end]
-                
-                # Compute beta for window
-                beta = (np.cov(stock_window, market_window)[0, 1] / 
-                       np.var(market_window)) if len(stock_window) > 1 else np.nan
-                
-                # Extend beta value for the whole window
-                betas.extend([beta] * (end - start))
-            
-            # Adjust beta length to match DataFrame
-            if len(merged_df) > len(betas):
-                betas = np.append(betas, np.full((len(merged_df) - len(betas),), betas[-1]))
-            elif len(merged_df) < len(betas):
-                betas = betas[:len(merged_df)]
-            
-            # Assign betas to style factors
-            style_factors['beta'] = betas
-            
-        return style_factors
+    def calculate_beta(self, window_size=62):
+        # Compute stock returns from self.df.
+        stock_returns = self.df[['date', 'close']].copy()
+        stock_returns['stock_return'] = stock_returns['close'].pct_change()
+        # Ensure sp500_returns has a 'date' column and a 'market_return' column.
+        market_returns = self.sp500_returns.copy()
+        if 'changePercent' in market_returns.columns:
+            market_returns = market_returns.rename(columns={'changePercent': 'market_return'})
+        # Merge on date.
+        merged_df = pd.merge(stock_returns, market_returns, on='date', how='left')
+        merged_df.fillna(0, inplace=True)
+        merged_df.set_index('date', inplace=True)
+        # Compute rolling beta.
+        def calc_beta(window):
+            market_var = np.var(window['market_return'])
+            if market_var == 0:
+                return np.nan
+            return np.cov(window['stock_return'], window['market_return'])[0, 1] / market_var
+        beta_series = merged_df[['stock_return','market_return']].rolling(window=window_size).apply(
+            lambda x: calc_beta(pd.DataFrame(x.reshape(-1, 2), columns=['stock_return','market_return'])),
+            raw=True
+        )
+        # Use the stock_return column as beta; reindex to self.df dates.
+        beta_series = beta_series['stock_return']
+        beta_series = beta_series.reindex(self.df['date']).ffill()
+        return beta_series
 
     def calculate_liquidity(self, window=60):
-        """Calculate liquidity using volume moving average"""
-        style_factors = pd.DataFrame(index=self.df.index)
-        
-        for ticker in self.tickers:
-            liquidity = (self.df['volume']
-                        .rolling(window=window)
-                        .mean())
-            style_factors['liquidity'] = liquidity
-            
-        return style_factors
+        return self.df['volume'].rolling(window=window).mean()
 
     def calculate_growth(self, window=60):
-        """Calculate price growth over window"""
-        style_factors = pd.DataFrame(index=self.df.index)
-        
-        for ticker in self.tickers:
-            growth = (self.df['close']
-                     .pct_change()
-                     .rolling(window=window)
-                     .sum())
-            style_factors['growth'] = growth
-            
-        return style_factors
+        return self.df['close'].pct_change().rolling(window=window).sum()
 
     def calculate_momentum(self, window=60):
-        """Calculate price momentum"""
-        style_factors = pd.DataFrame(index=self.df.index)
-        
-        for ticker in self.tickers:
-            momentum = (self.df['close']
-                       .pct_change()
-                       .rolling(window=window)
-                       .mean())
-            style_factors['momentum'] = momentum
-            
-        return style_factors
+        return self.df['close'].pct_change().rolling(window=window).mean()
 
     def calculate_all_factors(self):
-        """Calculate all style factors"""
         try:
-            # Initialize results DataFrame
-            all_factors = pd.DataFrame(index=self.df.index)
-                
-                # Calculate individual factors
-            beta_factors = self.calculate_beta()
-            liquidity_factors = self.calculate_liquidity()
-            growth_factors = self.calculate_growth()
-            momentum_factors = self.calculate_momentum()
-                
-            # Combine all factors
-            all_factors['date'] = self.df['date']
-            all_factors['beta'] = beta_factors['beta']
-            all_factors['liquidity'] = liquidity_factors['liquidity']
-            all_factors['growth'] = growth_factors['growth']
-            all_factors['momentum'] = momentum_factors['momentum']
-                
+            all_factors = self.df[['date']].copy()
+            all_factors['beta'] = self.calculate_beta()
+            all_factors['liquidity'] = self.calculate_liquidity()
+            all_factors['growth'] = self.calculate_growth()
+            all_factors['momentum'] = self.calculate_momentum()
             return all_factors
-            
         except Exception as e:
             print(f"Error calculating style factors: {e}")
             return pd.DataFrame()

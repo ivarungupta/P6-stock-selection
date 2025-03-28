@@ -1,16 +1,16 @@
 """
 sp500_constituents.py
 
-This module retrieves and processes the historical S&P 500 constituent changes
-using the FMPWrapper from fmp.py. It constructs a quarterly timeline of the S&P 500 constituents
-from a given output start year onward. It uses all historical changes (starting before 2005)
-to build the cumulative membership but outputs snapshots only for quarters from the output start year.
+This module retrieves and processes the current S&P 500 constituent data
+using the FMPWrapper from fmp.py. The new endpoint returns an array of constituent records,
+each with a "dateFirstAdded" field indicating when the company was added.
+This module builds a quarterly timeline of S&P 500 constituents based on their addition dates,
+recording snapshots only for quarters from the output_start_year onward.
 """
 
 import pandas as pd
 from datetime import datetime
-from data_sources.fmp import FMPWrapper  # Adjust the import path if needed (e.g., from data_sources.fmp import FMPWrapper)
-import ast
+from data_sources.fmp import FMPWrapper
 
 class SP500Constituents:
     def __init__(self, api_key, output_start_year=2004, end_year=2024):
@@ -26,9 +26,9 @@ class SP500Constituents:
     
     def fetch_historical_data(self):
         """
-        Fetch the historical S&P 500 constituent change data using FMPWrapper.
+        Fetch the current S&P 500 constituent data using FMPWrapper.
         Returns:
-            List of change records (each a dict).
+            List of constituent records (each a dict).
         """
         data = self.fmp.get_sp500_constituent()
         return data
@@ -42,30 +42,26 @@ class SP500Constituents:
 
     def process_quarterly_changes(self, changes):
         """
-        Process change records to build a quarterly timeline.
-        All events (even those before 2005) are applied cumulatively.
-        Only snapshots for quarters from the output_start_year onward are recorded.
-        
-        Each change record is expected to include:
-            - "date": The effective date of the change (e.g., "2005-03-23").
-            - "symbol": The ticker being added.
-            - "removedTicker": (optional) The ticker being removed.
+        Process constituent records to build a quarterly timeline.
+        Each record is expected to include:
+            - "dateFirstAdded": The effective date the constituent was added.
+            - "symbol": The ticker symbol.
         Returns:
             A dictionary mapping quarterly boundary dates (as strings) to sorted lists of constituent tickers.
         """
-        # Convert change records: add a datetime field.
-        for change in changes:
-            if "date" in change:
+        # Convert each record's "dateFirstAdded" to a datetime field.
+        for record in changes:
+            if "dateFirstAdded" in record:
                 try:
-                    change["date_dt"] = pd.to_datetime(change["date"])
+                    record["date_dt"] = pd.to_datetime(record["dateFirstAdded"])
                 except Exception as e:
-                    print(f"Error parsing date in record {change}: {e}")
-                    change["date_dt"] = pd.NaT
+                    print(f"Error parsing date in record {record}: {e}")
+                    record["date_dt"] = pd.NaT
             else:
-                change["date_dt"] = pd.NaT
+                record["date_dt"] = pd.NaT
         
-        # Sort changes chronologically.
-        changes_sorted = sorted(changes, key=lambda x: x["date_dt"] if x["date_dt"] is not pd.NaT else datetime.min)
+        # Sort records chronologically.
+        changes_sorted = sorted(changes, key=lambda x: x["date_dt"] if pd.notnull(x["date_dt"]) else datetime.min)
         
         quarterly_dates = self.generate_quarterly_dates(f"{self.output_start_year}-01-01", f"{self.end_year}-12-31")
         timeline = {}
@@ -74,18 +70,14 @@ class SP500Constituents:
         num_changes = len(changes_sorted)
         
         for q_date in quarterly_dates:
-            # Apply all change events up to (and including) the current quarterly date.
+            # Apply all addition events up to (and including) the current quarterly date.
             while change_index < num_changes and changes_sorted[change_index]["date_dt"] <= q_date:
-                change = changes_sorted[change_index]
-                # Remove ticker if specified.
-                if "removedTicker" in change and change["removedTicker"]:
-                    current_constituents.discard(change["removedTicker"])
-                # Add ticker (from the "symbol" field).
-                if "symbol" in change and change["symbol"]:
-                    current_constituents.add(change["symbol"])
+                record = changes_sorted[change_index]
+                if "symbol" in record and record["symbol"]:
+                    current_constituents.add(record["symbol"])
                 change_index += 1
             
-            # Record snapshot if q_date is in our output range.
+            # Record snapshot if the quarter is within our output range.
             if q_date.year >= self.output_start_year:
                 timeline[q_date.strftime("%Y-%m-%d")] = sorted(list(current_constituents))
         
@@ -93,7 +85,7 @@ class SP500Constituents:
 
     def get_quarterly_constituents_timeline(self):
         """
-        Retrieves historical data using FMPWrapper and returns a quarterly timeline of S&P 500 constituents.
+        Retrieves constituent data using FMPWrapper and returns a quarterly timeline of S&P 500 constituents.
         Returns:
             A dictionary where keys are quarterly boundary dates (as strings) and values are sorted lists of tickers.
         """

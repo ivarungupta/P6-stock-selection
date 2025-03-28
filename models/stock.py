@@ -4,12 +4,6 @@ import numpy as np
 class Stock:
     """
     A class to calculate stock-related financial factors.
-    
-    Attributes:
-        income_data (pd.DataFrame): Income statement data
-        balance_data (pd.DataFrame): Balance sheet data
-        cash_flow_data (pd.DataFrame): Cash flow statement data
-        market_data (pd.DataFrame): Market data
     """
     def __init__(self, income_data, balance_data, cash_flow_data, market_data):
         self.income_data_master = income_data
@@ -34,55 +28,85 @@ class Stock:
         if missing_cols:
             raise ValueError(f"Missing required columns: {', '.join(missing_cols)}")
 
+    def safe_get_value(self, df, column):
+        if df.empty or column not in df.columns:
+            return np.nan
+        try:
+            return df[column].iloc[0]
+        except Exception:
+            return np.nan
+
     def calculate_net_asset_per_share(self):
-        return self.balance_data['totalStockholdersEquity'].iloc[0] / self.income_data['weightedAverageShsOut'].iloc[0]
+        weighted_shares = self.safe_get_value(self.income_data, 'weightedAverageShsOut')
+        if pd.isna(weighted_shares) or weighted_shares == 0:
+            return np.nan
+        return self.safe_get_value(self.balance_data, 'totalStockholdersEquity') / weighted_shares
 
     def calculate_net_operate_cash_flow_per_share(self):
-        return self.cash_flow_data['operatingCashFlow'].iloc[0] / self.income_data['weightedAverageShsOut'].iloc[0]
+        weighted_shares = self.safe_get_value(self.income_data, 'weightedAverageShsOut')
+        if pd.isna(weighted_shares) or weighted_shares == 0:
+            return np.nan
+        return self.safe_get_value(self.cash_flow_data, 'operatingCashFlow') / weighted_shares
 
     def calculate_eps(self):
-        return self.income_data['eps'].iloc[0]
+        return self.safe_get_value(self.income_data, 'eps')
 
     def calculate_retained_earnings_per_share(self):
-        return self.balance_data['retainedEarnings'].iloc[0] / self.income_data['weightedAverageShsOut'].iloc[0]
+        weighted_shares = self.safe_get_value(self.income_data, 'weightedAverageShsOut')
+        if pd.isna(weighted_shares) or weighted_shares == 0:
+            return np.nan
+        return self.safe_get_value(self.balance_data, 'retainedEarnings') / weighted_shares
 
     def calculate_cashflow_per_share(self):
-        return self.cash_flow_data['freeCashFlow'].iloc[0] / self.income_data['weightedAverageShsOut'].iloc[0]
+        weighted_shares = self.safe_get_value(self.income_data, 'weightedAverageShsOut')
+        if pd.isna(weighted_shares) or weighted_shares == 0:
+            return np.nan
+        return self.safe_get_value(self.cash_flow_data, 'freeCashFlow') / weighted_shares
 
     def calculate_market_cap(self):
-        return self.income_data['weightedAverageShsOut'].iloc[0] * self.market_data['close'].iloc[0]
+        weighted_shares = self.safe_get_value(self.income_data, 'weightedAverageShsOut')
+        close_price = self.safe_get_value(self.market_data, 'close')
+        if pd.isna(weighted_shares) or pd.isna(close_price):
+            return np.nan
+        return weighted_shares * close_price
 
     def calculate_all_factors(self):
-        try:
-            factors = []
-            for i, income_row in self.income_data_master.iterrows():
-                    date = income_row['date']
-                    self.income_data = self.income_data_master[self.income_data_master['date'] == date]
-                    self.balance_data = self.balance_data_master[self.balance_data_master['date'] == date]
-                    self.cash_flow_data = self.cash_flow_data_master[self.cash_flow_data_master['date'] == date]
-                    if date in self.market_data_master['date'].values:
-                        self.market_data = self.market_data_master[self.market_data_master['date'] == date]
+        factors = []
+        for i, income_row in self.income_data_master.iterrows():
+            try:
+                date = income_row['date']
+                self.income_data = self.income_data_master[self.income_data_master['date'] == date]
+                self.balance_data = self.balance_data_master[self.balance_data_master['date'] == date]
+                self.cash_flow_data = self.cash_flow_data_master[self.cash_flow_data_master['date'] == date]
+                if date in self.market_data_master['date'].values:
+                    self.market_data = self.market_data_master[self.market_data_master['date'] == date]
+                else:
+                    prev_dates = self.market_data_master[self.market_data_master['date'] < date]
+                    if prev_dates.empty:
+                        # Use a row of NaNs if no market data is available.
+                        market_row = pd.Series({'open': np.nan, 'high': np.nan, 'low': np.nan, 'close': np.nan, 'volume': np.nan})
+                        self.market_data = pd.DataFrame([market_row])
                     else:
-                        prev_date = self.market_data_master[self.market_data_master['date'] < date]['date'].max()
-                        if pd.isna(prev_date):
-                            raise ValueError(f"No available market data for or before date: {date}")
+                        prev_date = prev_dates['date'].max()
                         self.market_data = self.market_data_master[self.market_data_master['date'] == prev_date]
-                    factors.append({
-                        'date': date,
-                        'open': self.market_data['open'].iloc[0],
-                        'high': self.market_data['high'].iloc[0],
-                        'low': self.market_data['low'].iloc[0],
-                        'close': self.market_data['close'].iloc[0],
-                        'volume': self.market_data['volume'].iloc[0],
-                        'net_asset_per_share': self.calculate_net_asset_per_share(),
-                        'net_operate_cash_flow_per_share': self.calculate_net_operate_cash_flow_per_share(),
-                        'eps': self.calculate_eps(),
-                        'retained_earnings_per_share': self.calculate_retained_earnings_per_share(),
-                        'cashflow_per_share': self.calculate_cashflow_per_share(),
-                        'market_cap': self.calculate_market_cap()
-                    })
+                factors.append({
+                    'date': date,
+                    'open': self.safe_get_value(self.market_data, 'open'),
+                    'high': self.safe_get_value(self.market_data, 'high'),
+                    'low': self.safe_get_value(self.market_data, 'low'),
+                    'close': self.safe_get_value(self.market_data, 'close'),
+                    'volume': self.safe_get_value(self.market_data, 'volume'),
+                    'net_asset_per_share': self.calculate_net_asset_per_share(),
+                    'net_operate_cash_flow_per_share': self.calculate_net_operate_cash_flow_per_share(),
+                    'eps': self.calculate_eps(),
+                    'retained_earnings_per_share': self.calculate_retained_earnings_per_share(),
+                    'cashflow_per_share': self.calculate_cashflow_per_share(),
+                    'market_cap': self.calculate_market_cap()
+                })
+            except Exception as e:
+                print(f"Error calculating stock factors for date {income_row['date']}: {e}")
+        try:
             return pd.DataFrame(factors)
-        
         except Exception as e:
-            print(f"Error calculating stock factors: {e}")
-            return {}
+            print(f"Error compiling stock factors: {e}")
+            return pd.DataFrame()

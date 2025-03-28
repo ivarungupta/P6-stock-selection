@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 import pandas as pd
+import numpy as np
 import ast
 from processing_tickers import process_tickers
 
@@ -29,12 +30,16 @@ def generate_quarterly_dates(start_date, end_date):
 def main():
     load_dotenv()
     
-    # Load the S&P 500 constituents timeline CSV.
-    # This file contains rows with "date" and "constituents" (a string representation of a list).
-    timeline_df = pd.read_csv("sp500_constituents_timeline.csv")
-    timeline_df["date"] = pd.to_datetime(timeline_df["date"])
-    timeline_df["constituents"] = timeline_df["constituents"].apply(lambda x: ast.literal_eval(x))
-    
+    try:
+        # Load the S&P 500 constituents timeline CSV.
+        # This file contains rows with "date" and "constituents" (a string representation of a list).
+        timeline_df = pd.read_csv("sp500_constituents_timeline.csv")
+        timeline_df["date"] = pd.to_datetime(timeline_df["date"])
+        timeline_df["constituents"] = timeline_df["constituents"].apply(lambda x: ast.literal_eval(x))
+    except Exception as e:
+        print(f"Error loading timeline CSV: {e}")
+        return
+
     # Derive the ticker universe from the timeline.
     ticker_set = set()
     for constituents in timeline_df["constituents"]:
@@ -48,18 +53,45 @@ def main():
         raise ValueError("API_KEY not found in .env file.")
     
     # Process tickers (the derived universe) over the full period.
-    merged_df = process_tickers(universe, api_key, START_DATE, END_DATE)
+    try:
+        merged_df = process_tickers(universe, api_key, START_DATE, END_DATE)
+    except Exception as e:
+        print(f"Error processing tickers: {e}")
+        return
+
     if merged_df.empty:
         print("No factors were successfully calculated.")
         return
-    merged_df.to_csv("final_merged_factors.csv", index=False)
-    print("Saved final_merged_factors.csv")
+
+    # Clean merged_df for infinite or extremely large values:
+    merged_df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    # Forward fill then backward fill missing values, then fill remaining NaNs with 0
+    merged_df.fillna(method="ffill", inplace=True)
+    merged_df.fillna(method="bfill", inplace=True)
+    merged_df.fillna(0, inplace=True)
+    
+    try:
+        merged_df.to_csv("final_merged_factors.csv", index=False)
+        print("Saved final_merged_factors.csv")
+    except Exception as e:
+        print(f"Error saving merged factors CSV: {e}")
     
     # Create target variable and scale the data.
-    target_engineer = FiveCategoryDivision()
-    merged_df = target_engineer.create_target(merged_df)
+    try:
+        target_engineer = FiveCategoryDivision()
+        merged_df = target_engineer.create_target(merged_df)
+    except Exception as e:
+        print(f"Error creating target variable: {e}")
+        return
+
     scaler = MinMaxScaling()
-    scaled_df = scaler.transform(merged_df)
+    try:
+        scaled_df = scaler.transform(merged_df)
+    except Exception as e:
+        print(f"Error during scaling: {e}")
+        return
+
+    # Ensure date column is in datetime format.
     scaled_df["date"] = pd.to_datetime(scaled_df["date"])
     
     # Define training and test splits.
@@ -110,20 +142,32 @@ def main():
         X_train = train_active.drop(columns=["date", "Ticker", "target"], errors="ignore")
         y_train = train_active["target"]
         rf_model = RandomForestModel()
-        rf_model.train(X_train, y_train)
-        feature_selector = CummulativeImportanceSelector(rf_model.model, X_train)
-        selected_features = feature_selector.select_features()
+        try:
+            rf_model.train(X_train, y_train)
+            feature_selector = CummulativeImportanceSelector(rf_model.model, X_train)
+            selected_features = feature_selector.select_features()
+        except Exception as e:
+            print(f"Error in feature selection for quarter {quarter}: {e}")
+            continue
         
         # Prepare datasets using selected features.
-        X_train_sel = X_train[selected_features]
-        X_test_sel = test_active.drop(columns=["date", "Ticker", "target"], errors="ignore")[selected_features]
-        y_test = test_active["target"]
+        try:
+            X_train_sel = X_train[selected_features]
+            X_test_sel = test_active.drop(columns=["date", "Ticker", "target"], errors="ignore")[selected_features]
+            y_test = test_active["target"]
+        except Exception as e:
+            print(f"Error preparing training/test sets for quarter {quarter}: {e}")
+            continue
         
         # Train XGBoost model and predict on current quarter.
-        xgb_model.train(X_train_sel, y_train)
-        pred = xgb_model.predict(X_test_sel)
-        acc = accuracy_score(y_test, pred)
-        pred_proba = xgb_model.predict_proba(X_test_sel)
+        try:
+            xgb_model.train(X_train_sel, y_train)
+            pred = xgb_model.predict(X_test_sel)
+            acc = accuracy_score(y_test, pred)
+            pred_proba = xgb_model.predict_proba(X_test_sel)
+        except Exception as e:
+            print(f"Error training/predicting XGBoost for quarter {quarter}: {e}")
+            continue
         
         test_active["target_pred_proba"] = pred_proba
         test_active["target_pred"] = pred
@@ -142,8 +186,11 @@ def main():
     # Save the quarterly predictions.
     if predictions:
         all_predictions = pd.concat(predictions, ignore_index=True)
-        all_predictions.to_csv("quarterly_predictions.csv", index=False)
-        print("Saved quarterly_predictions.csv")
+        try:
+            all_predictions.to_csv("quarterly_predictions.csv", index=False)
+            print("Saved quarterly_predictions.csv")
+        except Exception as e:
+            print(f"Error saving quarterly predictions: {e}")
     else:
         print("No quarterly predictions were generated.")
 
