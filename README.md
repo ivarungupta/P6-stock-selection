@@ -57,6 +57,7 @@
 ├── config.py
 ├── main.py
 ├── sp500_constituents.py
+├── equity_curve.py
 ├── sp500_constituents_timeline.csv
 ├── main.txt
 ├── final_merged_factors.csv
