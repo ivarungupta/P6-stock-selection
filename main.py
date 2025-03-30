@@ -36,6 +36,7 @@ def main():
         
         # Fetch the S&P 500 tickers using our helper function.
         tickers = get_sp500_tickers(api_key)
+        # print(tickers)
         if not tickers:
             print("No S&P 500 tickers found.")
             return
@@ -88,8 +89,8 @@ def main():
     estimator = xgb_model.model
     param_grid = {
         'n_estimators': [50, 100, 200],
-        'learning_rate': [0.01, 0.1, 0.2],
-        'max_depth': [3, 5, 7]
+        'learning_rate': [0.01],
+        'max_depth': [3]
     }
     tuner = HyperparameterTuner(estimator, param_grid, scoring='accuracy', cv=3, n_jobs=-1)
     best_estimator, best_score, best_params = tuner.tune_with_grid_search(X_tune, y_tune)

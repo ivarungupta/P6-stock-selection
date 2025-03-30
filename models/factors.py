@@ -40,9 +40,12 @@ class FactorsWrapper:
         self.cash_flow_data = self.cash_flow_data[(self.cash_flow_data['date'] >= self.prev_quarter_start_date) & (self.cash_flow_data['date'] <= self.end_date)][['date', 'symbol','calendarYear', 'period', 'dividendsPaid', 'operatingCashFlow', 'freeCashFlow']].iloc[::-1].reset_index(drop=True)
         self.financial_ratio_data = self.financial_ratio_data[(self.financial_ratio_data['date'] >= self.prev_quarter_start_date) & (self.financial_ratio_data['date'] <= self.end_date)].iloc[::-1].reset_index(drop=True)
 
+        print(self.balance_data)
+
         # Fetch historical market data for market-related factors.
         self.market_data = self.fmp.get_historical_price(self.ticker, self.prev_quarter_start_date, end_date)
         self.market_data = self.market_data[['date','open', 'high', 'low', 'close', 'adjClose', 'volume', 'changePercent']].iloc[::-1].reset_index(drop=True)
+        print(self.market_data)
 
     def get_prev_quarter_start(self, date_str):
         date = pd.to_datetime(date_str)
@@ -68,7 +71,7 @@ class FactorsWrapper:
         If the list contains more than one period, use the element at the provided index.
         """
         if isinstance(data, list) and len(data) > 0:
-            return pd.DataFrame(data[:25])
+            return pd.DataFrame(data)
         else:
             return pd.DataFrame()
 

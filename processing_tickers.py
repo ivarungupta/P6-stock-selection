@@ -75,12 +75,12 @@ def process_tickers(tickers, api_key, start_date, end_date, max_workers=10):
     else:
         return pd.DataFrame()
 
-def get_sp500_tickers(api_key, output_start_year="2004", end_year="2024"):
+def get_sp500_tickers(api_key):
     """
     Uses the SP500Constituents class to fetch the quarterly timeline of constituents,
     and returns the latest quarter’s ticker list.
     """
-    sp500 = SP500Constituents(api_key, int(output_start_year), int(end_year))
+    sp500 = SP500Constituents(api_key)
     timeline = sp500.get_quarterly_constituents_timeline()
     if timeline:
         latest_date = max(timeline.keys())
@@ -88,29 +88,30 @@ def get_sp500_tickers(api_key, output_start_year="2004", end_year="2024"):
     else:
         return []
 
-if __name__ == "__main__":
-    import argparse
+# if __name__ == "__main__":
+#     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Process S&P 500 tickers and generate merged factors."
-    )
-    parser.add_argument("--start_date", type=str, default="2022-01-01", help="Start date for processing.")
-    parser.add_argument("--end_date", type=str, default="2023-12-31", help="End date for processing.")
-    args = parser.parse_args()
+#     parser = argparse.ArgumentParser(
+#         description="Process S&P 500 tickers and generate merged factors."
+#     )
+#     parser.add_argument("--start_date", type=str, default="2022-01-01", help="Start date for processing.")
+#     parser.add_argument("--end_date", type=str, default="2023-12-31", help="End date for processing.")
+#     args = parser.parse_args()
 
-    api_key = os.getenv("API_KEY")
-    if not api_key:
-        raise ValueError("API_KEY not found in .env file.")
+#     api_key = os.getenv("API_KEY")
+#     if not api_key:
+#         raise ValueError("API_KEY not found in .env file.")
 
-    tickers = get_sp500_tickers(api_key)
-    if not tickers:
-        print("No S&P 500 tickers found.")
-        exit(1)
+#     tickers = get_sp500_tickers(api_key)
 
-    merged_df = process_tickers(tickers, api_key, args.start_date, args.end_date)
-    if not merged_df.empty:
-        output_csv = "final_merged_factors.csv"
-        merged_df.to_csv(output_csv, index=False)
-        print(f"Final merged factors saved to {output_csv}")
-    else:
-        print("No factors were successfully calculated.")
+#     if not tickers:
+#         print("No S&P 500 tickers found.")
+#         exit(1)
+
+#     merged_df = process_tickers(tickers, api_key, args.start_date, args.end_date)
+#     if not merged_df.empty:
+#         output_csv = "final_merged_factors.csv"
+#         merged_df.to_csv(output_csv, index=False)
+#         print(f"Final merged factors saved to {output_csv}")
+#     else:
+#         print("No factors were successfully calculated.")
