@@ -41,13 +41,15 @@ class Stock:
         if pd.isna(weighted_shares) or weighted_shares == 0:
             return np.nan
         return self.safe_get_value(self.balance_data, 'totalStockholdersEquity') / weighted_shares
-
+    
+    # doubt in this (ttm)
     def calculate_net_operate_cash_flow_per_share(self):
         weighted_shares = self.safe_get_value(self.income_data, 'weightedAverageShsOut')
         if pd.isna(weighted_shares) or weighted_shares == 0:
             return np.nan
         return self.safe_get_value(self.cash_flow_data, 'operatingCashFlow') / weighted_shares
 
+    # to be changed
     def calculate_eps(self):
         return self.safe_get_value(self.income_data, 'eps')
 
@@ -56,7 +58,8 @@ class Stock:
         if pd.isna(weighted_shares) or weighted_shares == 0:
             return np.nan
         return self.safe_get_value(self.balance_data, 'retainedEarnings') / weighted_shares
-
+    
+    # to be fully removed
     def calculate_cashflow_per_share(self):
         weighted_shares = self.safe_get_value(self.income_data, 'weightedAverageShsOut')
         if pd.isna(weighted_shares) or weighted_shares == 0:

@@ -1,5 +1,6 @@
 Quarter,Top5_Tickers
-2024-01-01,"['NCLH', 'UBER', 'AMZN', 'TGT', 'PARA']"
-2024-04-01,"['UAL', 'GNRC', 'GL', 'PARA', 'NCLH']"
-2024-07-01,"['K', 'VST', 'GNRC', 'TSLA', 'ENPH']"
-2024-10-01,"['PARA', 'ENPH', 'MKTX', 'HII', 'NVDA']"
+2020-01-01,"['CVX', 'DFS', 'DVN', 'CNP', 'LKQ']"
+2020-04-01,"['CPRT', 'GILD', 'AMAT', 'TXT', 'NTAP']"
+2020-07-01,"['OXY', 'INCY', 'CBOE', 'GOOG', 'HLT']"
+2020-10-01,"['CTRA', 'LVS', 'ULTA', 'TXT', 'NCLH']"
+2021-01-01,"['HES', 'XOM', 'COF', 'OXY', 'AIG']"

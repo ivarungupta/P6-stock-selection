@@ -41,15 +41,19 @@ class Value:
     def calculate_financial_liability(self):
         return self.safe_get_value(self.balance_data, 'totalLiabilities')
 
+    # to be changed
     def calculate_price_cashflow(self):
         return self.safe_get_value(self.financial_ratio_data, 'priceCashFlowRatio')
     
+    # to be changed
     def calculate_priceToBook(self):
         return self.safe_get_value(self.financial_ratio_data, 'priceToBookRatio')
 
+    # to be changed
     def calculate_price_to_sales(self):
         return self.safe_get_value(self.financial_ratio_data, 'priceToSalesRatio')
 
+    # to be changed
     def calculate_price_to_earnings(self):
         return self.safe_get_value(self.financial_ratio_data, 'priceEarningsRatio')
 
@@ -60,9 +64,11 @@ class Value:
         total_liabilities = self.safe_get_value(self.balance_data, 'totalLiabilities')
         return total_liabilities / total_assets
     
+    # to be changed (ttm)
     def calculate_net_profit(self):
         return self.safe_get_value(self.income_data, 'netIncome')
 
+    # to be changed (wrong formula)
     def calculate_ebit(self):
         revenue = self.safe_get_value(self.income_data, 'revenue')
         cost = self.safe_get_value(self.income_data, 'costOfRevenue')
@@ -71,6 +77,7 @@ class Value:
             return np.nan
         return revenue - cost - op_exp
 
+    # to be changed (wrong formula)
     def calculate_working_capital_ratio(self):
         total_assets = self.safe_get_value(self.balance_data, 'totalAssets')
         if pd.isna(total_assets) or total_assets == 0:
@@ -78,6 +85,7 @@ class Value:
         op_cf = self.safe_get_value(self.cash_flow_data, 'operatingCashFlow')
         return op_cf / total_assets
 
+    # to be changed (wrong formula)
     def calculate_quick_ratio(self):
         revenue = self.safe_get_value(self.income_data, 'revenue')
         if pd.isna(revenue) or revenue == 0:
@@ -86,6 +94,7 @@ class Value:
         inventory = self.safe_get_value(self.balance_data, 'inventory')
         return (net_receivables + inventory) / revenue
 
+    # change nomenclature & formula is wrong as-well & to be removed
     def calculate_ev_to_ocl(self):
         total_liabilities = self.safe_get_value(self.balance_data, 'totalLiabilities')
         if pd.isna(total_liabilities) or total_liabilities == 0:
@@ -93,6 +102,11 @@ class Value:
         op_cf = self.safe_get_value(self.cash_flow_data, 'operatingCashFlow')
         return op_cf / total_liabilities
 
+    # operating cashflow to total asset
+    # ev to operating cashflow (ttm)
+    # operating cashflow to net profit
+    # debt to ebitda
+    
     def calculate_debt_to_equity(self):
         total_equity = self.safe_get_value(self.balance_data, 'totalStockholdersEquity')
         if pd.isna(total_equity) or total_equity == 0:

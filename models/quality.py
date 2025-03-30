@@ -35,21 +35,25 @@ class Quality:
             return np.nan
         return self.income_data['netIncome'].iloc[0] / self.income_data['revenue'].iloc[0]
 
+    # to be changed
     def calculate_decm(self):
         if self.balance_data.empty or self.balance_data['totalAssets'].iloc[0] == 0:
             return np.nan
         return self.balance_data['totalLiabilities'].iloc[0] / self.balance_data['totalAssets'].iloc[0]
 
+    # to be changed (trailing 12 months)
     def calculate_roe(self):
         if self.balance_data.empty or self.balance_data['totalStockholdersEquity'].iloc[0] == 0:
             return np.nan
         return self.income_data['netIncome'].iloc[0] / self.balance_data['totalStockholdersEquity'].iloc[0]
 
+    # to be changed
     def calculate_roa(self):
         if self.balance_data.empty or self.balance_data['totalAssets'].iloc[0] == 0:
             return np.nan
         return self.income_data['netIncome'].iloc[0] / self.balance_data['totalAssets'].iloc[0]
 
+    # to explain to you
     def calculate_gmi(self):
         if self.prev_income_data is None or self.prev_income_data.empty or self.prev_income_data['revenue'].iloc[0] == 0:
             prev_gross_margin = 0
@@ -60,11 +64,14 @@ class Quality:
         current_gross_margin = self.income_data['grossProfit'].iloc[0] / self.income_data['revenue'].iloc[0]
         return current_gross_margin - prev_gross_margin
 
+    # to be changed
     def calculate_acca(self):
         if self.balance_data.empty or self.balance_data['totalAssets'].iloc[0] == 0:
             return np.nan
         return (self.income_data['netIncome'].iloc[0] - self.cash_flow_data['operatingCashFlow'].iloc[0]) / self.balance_data['totalAssets'].iloc[0]
 
+    # date to asset ratio 
+    
     def calculate_all_factors(self):
         try:
             factors = []

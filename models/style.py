@@ -44,12 +44,15 @@ class Style:
         beta_series = beta_series.reindex(self.df['date']).ffill()
         return beta_series
 
+    # to be changed
     def calculate_liquidity(self, window=60):
         return self.df['volume'].rolling(window=window).mean()
 
+    # to be changed
     def calculate_growth(self, window=60):
         return self.df['close'].pct_change().rolling(window=window).sum()
 
+    # to be changed
     def calculate_momentum(self, window=60):
         return self.df['close'].pct_change().rolling(window=window).mean()
 

@@ -33,37 +33,44 @@ class Growth:
             return df[column].iloc[0]
         except Exception:
             return np.nan
-
+        
+    # to be changed
     def calculate_peg(self):
         prev_eps = self.safe_get_value(self.prev_income_data, 'eps') if self.prev_income_data is not None else np.nan
         if pd.isna(prev_eps) or prev_eps == 0:
             return np.nan
         return self.safe_get_value(self.income_data, 'eps') / prev_eps
 
+    # to be changed
     def calculate_net_profit_growth(self):
         prev_net = self.safe_get_value(self.prev_income_data, 'netIncome') if self.prev_income_data is not None else np.nan
         if pd.isna(prev_net) or prev_net == 0:
             return np.nan
         return self.safe_get_value(self.income_data, 'netIncome') / prev_net
-
+    
+    # to be changed
     def calculate_revenue_growth(self):
         prev_rev = self.safe_get_value(self.prev_income_data, 'revenue') if self.prev_income_data is not None else np.nan
         if pd.isna(prev_rev) or prev_rev == 0:
             return np.nan
         return self.safe_get_value(self.income_data, 'revenue') / prev_rev
 
+    # to be changed
     def calculate_net_asset_growth(self):
         prev_equity = self.safe_get_value(self.prev_balance_data, 'totalStockholdersEquity') if self.prev_balance_data is not None else np.nan
         if pd.isna(prev_equity) or prev_equity == 0:
             return np.nan
         return self.safe_get_value(self.balance_data, 'totalStockholdersEquity') / prev_equity
 
+    # to be changed
     def calculate_operating_cashflow_growth(self):
         prev_ocf = self.safe_get_value(self.prev_cash_flow_data, 'operatingCashFlow') if self.prev_cash_flow_data is not None else np.nan
         if pd.isna(prev_ocf) or prev_ocf == 0:
             return np.nan
         return (self.safe_get_value(self.cash_flow_data, 'operatingCashFlow') / prev_ocf) - 1
 
+    # eps growth rate
+    
     def calculate_all_factors(self):
         factors = []
         for _, income_row in self.income_data_master.iterrows():

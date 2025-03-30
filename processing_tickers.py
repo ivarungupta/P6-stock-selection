@@ -3,15 +3,14 @@ import pandas as pd
 import concurrent.futures
 from data_sources.fmp import FMPWrapper
 from models.factors import FactorsWrapper
+from sp500_constituents import SP500Constituents
 
 def process_ticker(ticker, api_key, start_date, end_date):
     """
     Processes a single ticker:
-      - Creates an instance of FMPWrapper and FactorsWrapper.
-      - Calculates all factors.
-      - Merges quality factors with all other factors by matching on the date.
-      - Filters the merged dataframe by the specified date range.
-    Returns a DataFrame containing the processed factors for the ticker.
+      - Instantiates FMPWrapper and FactorsWrapper.
+      - Calculates all factors and merges them (using the quality factors’ dates as a base).
+      - Filters the merged data by the given date range.
     """
     try:
         fmp = FMPWrapper(api_key)
@@ -29,7 +28,6 @@ def process_ticker(ticker, api_key, start_date, end_date):
         for factor_category, factor_values in factors.items():
             if isinstance(factor_values, pd.DataFrame) and "date" in factor_values.columns:
                 factor_values = factor_values.sort_values(by="date").ffill()
-                # Merge using outer join to ensure all dates are captured
                 factor_values = pd.merge(
                     merged_factors[["date"]],
                     factor_values,
@@ -45,25 +43,17 @@ def process_ticker(ticker, api_key, start_date, end_date):
             else:
                 print(f"Skipping {factor_category} for {ticker} as it does not contain a valid DataFrame with a 'date' column.")
 
-        merged_factors = merged_factors[
-            (merged_factors["date"] >= start_date) & (merged_factors["date"] <= end_date)
-        ]
+        merged_factors = merged_factors[(merged_factors["date"] >= start_date) & (merged_factors["date"] <= end_date)]
         return merged_factors
 
     except Exception as e:
         print(f"Error processing {ticker}: {e}")
         return pd.DataFrame()
 
-
 def process_tickers(tickers, api_key, start_date, end_date, max_workers=10):
     """
-    Processes multiple tickers concurrently:
-      - Uses a ProcessPoolExecutor with a maximum of max_workers.
-      - Only the first 20 tickers in the provided list are processed.
-      - Collects the individual processed DataFrames and concatenates them.
-    Returns a single merged DataFrame for all tickers.
+    Processes multiple tickers concurrently and concatenates the results.
     """
-    # tickers = tickers[:20]
     merged_factors_list = []
     
     with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
@@ -85,33 +75,37 @@ def process_tickers(tickers, api_key, start_date, end_date, max_workers=10):
     else:
         return pd.DataFrame()
 
+def get_sp500_tickers(api_key, output_start_year="2004", end_year="2024"):
+    """
+    Uses the SP500Constituents class to fetch the quarterly timeline of constituents,
+    and returns the latest quarter’s ticker list.
+    """
+    sp500 = SP500Constituents(api_key, int(output_start_year), int(end_year))
+    timeline = sp500.get_quarterly_constituents_timeline()
+    if timeline:
+        latest_date = max(timeline.keys())
+        return timeline[latest_date]
+    else:
+        return []
 
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Process tickers and generate merged factors."
+        description="Process S&P 500 tickers and generate merged factors."
     )
-    parser.add_argument(
-        "--tickers_file",
-        type=str,
-        default="Tickers.csv",
-        help="Path to the CSV file containing tickers.",
-    )
-    parser.add_argument(
-        "--start_date", type=str, default="2022-01-01", help="Start date for processing."
-    )
-    parser.add_argument(
-        "--end_date", type=str, default="2023-12-31", help="End date for processing."
-    )
+    parser.add_argument("--start_date", type=str, default="2022-01-01", help="Start date for processing.")
+    parser.add_argument("--end_date", type=str, default="2023-12-31", help="End date for processing.")
     args = parser.parse_args()
-
-    tickers_df = pd.read_csv(args.tickers_file)
-    tickers = tickers_df["Symbol"].tolist()
 
     api_key = os.getenv("API_KEY")
     if not api_key:
         raise ValueError("API_KEY not found in .env file.")
+
+    tickers = get_sp500_tickers(api_key)
+    if not tickers:
+        print("No S&P 500 tickers found.")
+        exit(1)
 
     merged_df = process_tickers(tickers, api_key, args.start_date, args.end_date)
     if not merged_df.empty:

@@ -17,11 +17,11 @@ class Emotional:
         if missing_cols:
             raise ValueError(f"Missing required columns: {missing_cols}")
 
-    def calculate_volume_volatility(self, window=20):
+    def calculate_volume_volatility(self, window=60):
         self.df['VOL20'] = self.df['close'].pct_change().rolling(window=window).std()
         return self.df
 
-    def calculate_volume_ma(self, window=20):
+    def calculate_volume_ma(self, window=60):
         self.df['DAVOL20'] = self.df['volume'].rolling(window=window).mean()
         return self.df
 
@@ -36,7 +36,7 @@ class Emotional:
         self.df['VMACD'] = fast_ma - slow_ma
         return self.df
 
-    def calculate_atr(self, window=14):
+    def calculate_atr(self, window=42):
         self.df['ATR14'] = (self.df['high'] - self.df['low']).rolling(window=window).mean()
         return self.df
 
