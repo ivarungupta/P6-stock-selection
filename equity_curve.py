@@ -35,7 +35,7 @@ class EquityCurve:
         try:
             df = pd.read_csv(self.predictions_csv)
             df['Quarter'] = pd.to_datetime(df['Quarter'])
-            df['Top5_Tickers'] = df['Top5_Tickers'].apply(ast.literal_eval)
+            df['Top20_Tickers'] = df['Top20_Tickers'].apply(ast.literal_eval)
             df.sort_values('Quarter', inplace=True)
             df.reset_index(drop=True, inplace=True)
             return df

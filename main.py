@@ -40,8 +40,9 @@ def main():
         if not tickers:
             print("No S&P 500 tickers found.")
             return
-        
+
         merged_df = process_tickers(tickers, api_key, START_DATE, END_DATE)
+
         if merged_df.empty:
             print("No factors were successfully calculated.")
             return
@@ -93,7 +94,7 @@ def main():
         'max_depth': [3]
     }
     tuner = HyperparameterTuner(estimator, param_grid, scoring='accuracy', cv=3, n_jobs=-1)
-    best_estimator, best_score, best_params = tuner.tune_with_grid_search(X_tune, y_tune)
+    _, best_score, best_params = tuner.tune_with_grid_search(X_tune, y_tune)
     print("Hyperparameter Tuning (Grid Search) - Best Score:", best_score)
     print("Hyperparameter Tuning (Grid Search) - Best Params:", best_params)
     xgb_model.model.set_params(**best_params)
@@ -162,12 +163,12 @@ def main():
         test_active["target_pred_proba"] = pred_proba
         test_active["target_pred"] = pred
         test_active = test_active.sort_values(by=["target_pred", "target_pred_proba"], ascending=[False, False])
-        top5 = test_active["Ticker"].head(5).tolist()
+        top20 = test_active["Ticker"].head(20).tolist()
         
-        predictions.append(pd.DataFrame({"Quarter": [quarter], "Top5_Tickers": [top5]}))
+        predictions.append(pd.DataFrame({"Quarter": [quarter], "Top20_Tickers": [top20]}))
         
         print(f"Accuracy for {quarter}: {acc}")
-        print(f"Top 5 stocks for {quarter}: {top5}")
+        print(f"Top 20 stocks for {quarter}: {top20}")
         
         train_data = train_data[train_data["Ticker"].isin(active_constituents)].copy()
         train_data = pd.concat([train_data, test_active], ignore_index=True)

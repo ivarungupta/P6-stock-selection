@@ -45,22 +45,29 @@ class Style:
         return beta_series
 
     # to be changed
-    def calculate_liquidity(self, window=60):
-        return self.df['volume'].rolling(window=window).mean()
+    # def calculate_liquidity(self, window=60):
+    #     return self.df['volume'].rolling(window=window).mean()
 
     # to be changed
-    def calculate_growth(self, window=60):
-        return self.df['close'].pct_change().rolling(window=window).sum()
+    def calculate_growth(self, window=252):
+        """
+        Calculate growth as the cumulative log return over the window.
+        This is computed as: log(close) - log(close.shift(window)).
+        """
+        return np.log(self.df['close']) - np.log(self.df['close'].shift(window))
 
     # to be changed
-    def calculate_momentum(self, window=60):
-        return self.df['close'].pct_change().rolling(window=window).mean()
+    def calculate_momentum(self, window=252):
+        """
+        Calculate momentum as the percentage change from 'window' days ago.
+        This is computed as: (close / close.shift(window)) - 1.
+        """
+        return self.df['close'].pct_change(periods=window)
 
     def calculate_all_factors(self):
         try:
             all_factors = self.df[['date']].copy()
             all_factors['beta'] = self.calculate_beta()
-            all_factors['liquidity'] = self.calculate_liquidity()
             all_factors['growth'] = self.calculate_growth()
             all_factors['momentum'] = self.calculate_momentum()
             return all_factors

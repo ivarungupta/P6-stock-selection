@@ -11,7 +11,7 @@ class Quality:
         self.cash_flow_data_master = cash_flow_data
         self.required_columns = {
             'income': {'netIncome', 'revenue', 'grossProfit'},
-            'balance': {'totalStockholdersEquity', 'totalAssets', 'totalLiabilities'},
+            'balance': {'totalStockholdersEquity', 'totalAssets', 'totalDebt', 'totalLiabilities', 'inventory', "accountPayables"},
             'cash_flow': {'operatingCashFlow'}
         }
         self._validate_columns()
@@ -29,31 +29,83 @@ class Quality:
                 missing_cols.append(f"Cash Flow: {col}")
         if missing_cols:
             raise ValueError(f"Missing required columns: {', '.join(missing_cols)}")
+    
+    def safe_get_value_ttm(self, df, column):
 
-    def calculate_net_profit_to_revenue(self):
-        if self.income_data.empty or self.income_data['revenue'].iloc[0] == 0:
+        if df.empty or column not in df.columns:
             return np.nan
-        return self.income_data['netIncome'].iloc[0] / self.income_data['revenue'].iloc[0]
+        try:
+            # Ensure there are at least 4 quarters available
+            if len(df) < 4:
+                return df[column].iloc[:len(df)].sum()
+            # Sum the values of the first 4 rows (most recent four quarters)
+            return df[column].iloc[:4].sum()
+        
+        except Exception:
+            return np.nan
+        
+    def calculate_net_profit_to_revenue(self):
+        if self.income_data is None:
+            return np.nan
+        
+        revenue_ttm = self.safe_get_value_ttm(self.income_data, 'revenue')
+        if pd.isna(revenue_ttm) or revenue_ttm == 0:
+            return np.nan
+
+        # Get TTM net income.
+        net_income_ttm = self.safe_get_value_ttm(self.income_data, 'netIncome')
+
+        # Return the TTM net profit to revenue ratio.
+        return net_income_ttm / revenue_ttm
 
     # to be changed
     def calculate_decm(self):
-        if self.balance_data.empty or self.balance_data['totalAssets'].iloc[0] == 0:
-            return np.nan
-        return self.balance_data['totalLiabilities'].iloc[0] / self.balance_data['totalAssets'].iloc[0]
+        if self.prev_balance_data is None or self.prev_balance_data.empty or self.prev_balance_data['inventory'].iloc[0] == 0:
+            prev_inventory = 0
+        else:
+            prev_inventory = self.prev_balance_data['inventory'].iloc[0]
+        
+        if self.prev_balance_data is None or self.prev_balance_data.empty or self.prev_balance_data['accountPayables'].iloc[0] == 0:
+            prev_acc_payables = 0
+        else:
+            prev_acc_payables = self.prev_balance_data['accountPayables'].iloc[0]
 
-    # to be changed (trailing 12 months)
+        if self.balance_data is None or self.balance_data.empty or self.balance_data['inventory'].iloc[0] == 0:
+            curr_inventory = 0
+        else:
+            curr_inventory = self.balance_data['inventory'].iloc[0]
+        
+        if self.balance_data is None or self.balance_data.empty or self.balance_data['accountPayables'].iloc[0] == 0:
+            curr_acc_payables = 0
+        else:
+            curr_acc_payables = self.balance_data['accountPayables'].iloc[0]
+        
+        if self.balance_data is None or self.balance_data['totalAssets'].iloc[0] == 0:
+            return np.nan
+        
+        decm = curr_acc_payables + curr_inventory - prev_acc_payables - prev_inventory 
+
+        return decm/self.balance_data['totalAssets'].iloc[0]
+
     def calculate_roe(self):
-        if self.balance_data.empty or self.balance_data['totalStockholdersEquity'].iloc[0] == 0:
+        if self.balance_data is None or self.balance_data['totalStockholdersEquity'].iloc[0] == 0:
             return np.nan
-        return self.income_data['netIncome'].iloc[0] / self.balance_data['totalStockholdersEquity'].iloc[0]
+        
+        net_income_ttm = self.safe_get_value_ttm(self.income_data, 'netIncome')
 
-    # to be changed
+        return net_income_ttm / self.balance_data['totalStockholdersEquity'].iloc[0]
+
     def calculate_roa(self):
-        if self.balance_data.empty or self.balance_data['totalAssets'].iloc[0] == 0:
+        if self.prev_balance_data is None or self.prev_balance_data['totalAssets'].iloc[0] == 0:
             return np.nan
-        return self.income_data['netIncome'].iloc[0] / self.balance_data['totalAssets'].iloc[0]
+        
+        if self.balance_data is None or self.balance_data['totalAssets'].iloc[0] == 0:
+            return np.nan
+        
+        net_income_ttm = self.safe_get_value_ttm(self.income_data, 'netIncome')
 
-    # to explain to you
+        return net_income_ttm / (self.balance_data['totalAssets'].iloc[0] + self.prev_balance_data['totalAssets'].iloc[0])
+
     def calculate_gmi(self):
         if self.prev_income_data is None or self.prev_income_data.empty or self.prev_income_data['revenue'].iloc[0] == 0:
             prev_gross_margin = 0
@@ -66,23 +118,76 @@ class Quality:
 
     # to be changed
     def calculate_acca(self):
+        # Check if balance data is empty or if total assets is zero to avoid division by zero.
         if self.balance_data.empty or self.balance_data['totalAssets'].iloc[0] == 0:
             return np.nan
-        return (self.income_data['netIncome'].iloc[0] - self.cash_flow_data['operatingCashFlow'].iloc[0]) / self.balance_data['totalAssets'].iloc[0]
 
-    # date to asset ratio 
+        # Retrieve TTM net income from the income data.
+        net_income_ttm = self.safe_get_value_ttm(self.income_data, 'netIncome')
+        
+        # Retrieve TTM operating cash flow from the cash flow data.
+        operating_cf_ttm = self.safe_get_value_ttm(self.cash_flow_data, 'operatingCashFlow')
+
+        # Calculate ACCA on a TTM basis.
+        return (net_income_ttm - operating_cf_ttm) / self.balance_data['totalAssets'].iloc[0]
+
+    # debt to asset ratio
+    def calculate_debtToAsset(self):
+        if self.balance_data is None or self.balance_data['totalAssets'].iloc[0] == 0:
+            return np.nan
+        
+        return self.balance_data['totalDebt'].iloc[0] / self.balance_data['totalAssets'].iloc[0]
+
     
     def calculate_all_factors(self):
         try:
             factors = []
+
             for _, income_row in self.income_data_master.iterrows():
                 date = income_row['date']
                 self.income_data = self.income_data_master[self.income_data_master['date'] == date]
                 self.balance_data = self.balance_data_master[self.balance_data_master['date'] == date]
                 self.cash_flow_data = self.cash_flow_data_master[self.cash_flow_data_master['date'] == date]
-                self.prev_income_data = None
-                if not self.income_data_master[self.income_data_master['date'] < date].empty:
-                    self.prev_income_data = self.income_data_master[self.income_data_master['date'] < date].iloc[-1:]
+
+                # For income data:
+                income_subset = self.income_data_master[self.income_data_master['date'] < date]
+                if not income_subset.empty:
+                    available = income_subset.iloc[-4:]
+                    if len(available) < 4:
+                        num_missing = 4 - len(available)
+                        pad = pd.DataFrame({col: [np.nan] * num_missing for col in income_subset.columns})
+                        self.prev_income_data = pd.concat([pad, available], ignore_index=True)
+                    else:
+                        self.prev_income_data = available
+                else:
+                    self.prev_income_data = None
+
+                # For balance data:
+                balance_subset = self.balance_data_master[self.balance_data_master['date'] < date]
+                if not balance_subset.empty:
+                    available = balance_subset.iloc[-4:]
+                    if len(available) < 4:
+                        num_missing = 4 - len(available)
+                        pad = pd.DataFrame({col: [np.nan] * num_missing for col in balance_subset.columns})
+                        self.prev_balance_data = pd.concat([pad, available], ignore_index=True)
+                    else:
+                        self.prev_balance_data = available
+                else:
+                    self.prev_balance_data = None
+
+                # For cash flow data:
+                cash_flow_subset = self.cash_flow_data_master[self.cash_flow_data_master['date'] < date]
+                if not cash_flow_subset.empty:
+                    available = cash_flow_subset.iloc[-4:]
+                    if len(available) < 4:
+                        num_missing = 4 - len(available)
+                        pad = pd.DataFrame({col: [np.nan] * num_missing for col in cash_flow_subset.columns})
+                        self.prev_cash_flow_data = pd.concat([pad, available], ignore_index=True)
+                    else:
+                        self.prev_cash_flow_data = available
+                else:
+                    self.prev_cash_flow_data = None
+
                 factors.append({
                     'date': date,
                     'net_profit_to_total_revenue': self.calculate_net_profit_to_revenue(),
@@ -90,8 +195,10 @@ class Quality:
                     'ROE': self.calculate_roe(),
                     'ROA': self.calculate_roa(),
                     'ACCA': self.calculate_acca(),
-                    'GMI': self.calculate_gmi()
+                    'GMI': self.calculate_gmi(),
+                    'DtoA': self.calculate_debtToAsset()
                 })
+                
             return pd.DataFrame(factors)
         except Exception as e:
             print(f"Error calculating quality factors: {e}")

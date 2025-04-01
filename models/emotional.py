@@ -18,11 +18,11 @@ class Emotional:
             raise ValueError(f"Missing required columns: {missing_cols}")
 
     def calculate_volume_volatility(self, window=60):
-        self.df['VOL20'] = self.df['close'].pct_change().rolling(window=window).std()
+        self.df['VOL60'] = self.df['close'].pct_change().rolling(window=window).std()
         return self.df
 
     def calculate_volume_ma(self, window=60):
-        self.df['DAVOL20'] = self.df['volume'].rolling(window=window).mean()
+        self.df['DAVOL60'] = self.df['volume'].rolling(window=window).mean()
         return self.df
 
     def calculate_volume_oscillator(self):
@@ -37,7 +37,7 @@ class Emotional:
         return self.df
 
     def calculate_atr(self, window=42):
-        self.df['ATR14'] = (self.df['high'] - self.df['low']).rolling(window=window).mean()
+        self.df['ATR42'] = (self.df['high'] - self.df['low']).rolling(window=window).mean()
         return self.df
 
     def calculate_all_factors(self):
@@ -47,7 +47,7 @@ class Emotional:
             self.calculate_volume_oscillator()
             self.calculate_volume_macd()
             self.calculate_atr()
-            emotional_columns = ['date','VOL20', 'DAVOL20', 'VOSC', 'VMACD', 'ATR14']
+            emotional_columns = ['date','VOL60', 'DAVOL60', 'VOSC', 'VMACD', 'ATR42']
             return self.df[emotional_columns]
         except Exception as e:
             print(f"Error calculating emotional factors: {e}")
